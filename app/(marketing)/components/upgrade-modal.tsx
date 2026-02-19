@@ -1,5 +1,5 @@
 "use client";
-
+  
 export function UpgradeModal() {
   return (
     <section 

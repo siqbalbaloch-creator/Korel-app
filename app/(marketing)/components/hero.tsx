@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Sparkles } from "lucide-react";
 
 export function Hero() {
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
+  const router = useRouter();
 
   return (
     <section 
@@ -122,8 +124,8 @@ export function Hero() {
         >
           {/* Large Textarea - 200px height for above fold */}
           <textarea
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
             placeholder="Paste your YouTube link or transcript..."
             style={{
               width: '100%',
@@ -157,6 +159,7 @@ export function Hero() {
 
           {/* Primary CTA Button - Premium gradient */}
           <button
+            disabled={!inputValue.trim()}
             style={{
               width: '100%',
               background: 'linear-gradient(135deg, #6D5EF3 0%, #8B7CFF 100%)',
@@ -170,17 +173,27 @@ export function Hero() {
               boxShadow: '0 6px 20px rgba(109, 94, 243, 0.15)',
               transition: 'all 0.2s ease',
               letterSpacing: '0',
-              marginBottom: '14px'
+              marginBottom: '14px',
+              opacity: inputValue.trim() ? 1 : 0.6,
+              cursor: inputValue.trim() ? 'pointer' : 'not-allowed'
             }}
             onMouseEnter={(e) => {
+              if (!inputValue.trim()) return;
               e.currentTarget.style.transform = 'translateY(-2px)';
               e.currentTarget.style.boxShadow = '0 8px 24px rgba(109, 94, 243, 0.25)';
               e.currentTarget.style.filter = 'brightness(1.05)';
             }}
             onMouseLeave={(e) => {
+              if (!inputValue.trim()) return;
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = '0 6px 20px rgba(109, 94, 243, 0.15)';
               e.currentTarget.style.filter = 'brightness(1)';
+            }}
+            onClick={() => {
+              const trimmed = inputValue.trim();
+              if (!trimmed) return;
+              const params = new URLSearchParams({ input: trimmed });
+              router.push(`/new?${params.toString()}`);
             }}
           >
             Generate Free Pack

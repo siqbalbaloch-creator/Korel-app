@@ -1,0 +1,33 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  packs     AuthorityPack[]
+}
+
+model AuthorityPack {
+  id                String   @id @default(cuid())
+  title             String
+  originalInput     String
+  coreThesis        Json?
+  strategicHooks    Json?
+  highLeveragePosts Json?
+  insightBreakdown  Json?
+  repurposingMatrix Json?
+  executiveSummary  Json?
+  createdAt         DateTime @default(now())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+}
