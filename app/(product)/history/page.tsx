@@ -1,6 +1,8 @@
 import type { Prisma } from "@prisma/client";
+import { redirect } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { ensureDemoUser } from "@/lib/demo-user";
+import { getServerAuthSession } from "@/lib/auth";
 import HistoryClient from "./history-client";
 
 type PackRecord = {
@@ -8,6 +10,8 @@ type PackRecord = {
   title: string;
   createdAt: Date;
   originalInput: string;
+  status: string;
+  regenerationCount: number;
   coreThesis: Prisma.JsonValue | null;
   strategicHooks: Prisma.JsonValue | null;
   highLeveragePosts: Prisma.JsonValue | null;
@@ -42,7 +46,7 @@ const extractUrl = (value: string) => {
 
 const isRecord = (
   value: Prisma.JsonValue | null,
-): value is Record<string, unknown> =>
+): value is Prisma.JsonObject =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const toString = (value: unknown) => (typeof value === "string" ? value : "");
@@ -155,15 +159,21 @@ const calculateWordCount = (pack: PackRecord) => {
 };
 
 const loadPacks = async (): Promise<PackRecord[]> => {
-  const user = await ensureDemoUser();
+  const session = await getServerAuthSession();
+  const userId = session?.user?.id;
+  if (!userId) {
+    redirect("/signin");
+  }
   return prisma.authorityPack.findMany({
-    where: { userId: user.id },
+    where: { userId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
       title: true,
       createdAt: true,
       originalInput: true,
+      status: true,
+      regenerationCount: true,
       coreThesis: true,
       strategicHooks: true,
       highLeveragePosts: true,
@@ -191,6 +201,8 @@ export default async function HistoryPage() {
       sourcePreview: truncateText(sourceText, 96),
       wordCount: calculateWordCount(pack),
       planAtGeneration: "Free" as const,
+      status: pack.status === "published" ? ("published" as const) : ("draft" as const),
+      regenerationCount: pack.regenerationCount,
     };
   });
 
@@ -206,9 +218,17 @@ export default async function HistoryPage() {
 
         <div>
           {historyPacks.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-10 text-center text-sm text-neutral-500">
-              No history yet. Generate your first Authority Pack from the New Pack
-              workspace.
+            <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-10 text-center space-y-3">
+              <p className="text-sm font-medium text-neutral-700">No packs yet.</p>
+              <p className="text-sm text-neutral-500">
+                Create your first Authority Pack to see it here.
+              </p>
+              <Link
+                href="/new"
+                className="inline-flex items-center justify-center rounded-md bg-[#4F46E5] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#4338CA]"
+              >
+                Generate New Pack
+              </Link>
             </div>
           ) : (
             <HistoryClient packs={historyPacks} />

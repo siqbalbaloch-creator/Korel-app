@@ -1,11 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import PostPlatformSection from "../history/[id]/PostPlatformSection";
 import HooksSectionClient from "../history/[id]/HooksSectionClient";
 import SourcePanel from "../history/[id]/SourcePanel";
+import NewsletterSection from "../history/[id]/NewsletterSection";
 
 type PackResponse = {
   id: string;
@@ -16,13 +17,16 @@ type PackResponse = {
   strategicHooks: unknown;
   highLeveragePosts: unknown;
   insightBreakdown: unknown;
-  repurposingMatrix: unknown;
   executiveSummary: unknown;
+  strategicMap?: unknown;
+  regenerationCount?: number;
 };
 
 type AuthorityPackPreviewProps = {
   packId: string | null;
   isGenerating: boolean;
+  limitReached?: boolean;
+  regenLimit?: number | null;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -35,43 +39,12 @@ const toStringArray = (value: unknown) =>
     ? value.filter((item): item is string => typeof item === "string")
     : [];
 
-const toEntryArray = (
-  value: unknown,
-): { asset: string; platform: string; format: string; angle: string }[] =>
-  Array.isArray(value)
-    ? value
-        .filter(
-          (entry): entry is {
-            asset: string;
-            platform: string;
-            format: string;
-            angle: string;
-          } => {
-            if (typeof entry !== "object" || entry === null) {
-              return false;
-            }
-            const record = entry as Record<string, unknown>;
-            return (
-              typeof record.asset === "string" &&
-              typeof record.platform === "string" &&
-              typeof record.format === "string" &&
-              typeof record.angle === "string"
-            );
-          },
-        )
-        .map((entry) => ({
-          asset: entry.asset,
-          platform: entry.platform,
-          format: entry.format,
-          angle: entry.angle,
-        }))
-    : [];
-
 type ParsedPack = {
   id: string;
   title: string;
   createdAt: Date;
   originalInput: string;
+  regenerationCount: number;
   coreThesis: {
     primaryThesis: string;
     supportingThemes: string[];
@@ -92,14 +65,6 @@ type ParsedPack = {
     dataBackedAngles: string[];
     frameworks: string[];
   };
-  repurposingMatrix: {
-    entries: {
-      asset: string;
-      platform: string;
-      format: string;
-      angle: string;
-    }[];
-  };
   executiveSummary: {
     headline: string;
     positioningSentence: string;
@@ -118,9 +83,6 @@ const parsePack = (raw: PackResponse): ParsedPack => {
   const insightBreakdownRecord = isRecord(raw.insightBreakdown)
     ? raw.insightBreakdown
     : {};
-  const repurposingMatrixRecord = isRecord(raw.repurposingMatrix)
-    ? raw.repurposingMatrix
-    : {};
   const executiveSummaryRecord = isRecord(raw.executiveSummary)
     ? raw.executiveSummary
     : {};
@@ -130,6 +92,7 @@ const parsePack = (raw: PackResponse): ParsedPack => {
     title: raw.title,
     originalInput: raw.originalInput,
     createdAt: new Date(raw.createdAt),
+    regenerationCount: typeof raw.regenerationCount === "number" ? raw.regenerationCount : 0,
     coreThesis: {
       primaryThesis: toString(coreThesisRecord.primaryThesis),
       supportingThemes: toStringArray(coreThesisRecord.supportingThemes),
@@ -151,9 +114,6 @@ const parsePack = (raw: PackResponse): ParsedPack => {
         insightBreakdownRecord.dataBackedAngles,
       ),
       frameworks: toStringArray(insightBreakdownRecord.frameworks),
-    },
-    repurposingMatrix: {
-      entries: toEntryArray(repurposingMatrixRecord.entries),
     },
     executiveSummary: {
       headline: toString(executiveSummaryRecord.headline),
@@ -196,7 +156,12 @@ const truncateText = (value: string, maxLength = 96) => {
   return `${trimmed.slice(0, maxLength)}...`;
 };
 
-export function AuthorityPackPreview({ packId, isGenerating }: AuthorityPackPreviewProps) {
+export function AuthorityPackPreview({
+  packId,
+  isGenerating,
+  limitReached = false,
+  regenLimit = null,
+}: AuthorityPackPreviewProps) {
   const [state, setState] = useState<{
     status: "idle" | "loading" | "loaded" | "error";
     pack: ParsedPack | null;
@@ -246,12 +211,34 @@ export function AuthorityPackPreview({ packId, isGenerating }: AuthorityPackPrev
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-neutral-900">
-              Assembling your Authority Pack…
+              Assembling your Authority Packâ€¦
             </p>
             <p className="text-xs text-neutral-500">
-              Extracting hooks, LinkedIn posts, X threads, and key insights from your transcript.
+              Extracting strategic hooks, platform-ready assets, and insight breakdowns from your transcript.
             </p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (limitReached && (!packId || state.status === "idle")) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <div className="max-w-md text-center space-y-3">
+          <h2 className="text-xl font-semibold text-neutral-900">
+            Monthly limit reached.
+          </h2>
+          <p className="text-sm text-neutral-500">
+            You&apos;ve reached your monthly Authority Pack limit. Upgrade to continue turning
+            your source material into structured authority assets.
+          </p>
+          <Link
+            href="/upgrade"
+            className="inline-flex items-center justify-center rounded-md bg-[#4F46E5] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#4338CA]"
+          >
+            View Upgrade Plans
+          </Link>
         </div>
       </div>
     );
@@ -267,7 +254,7 @@ export function AuthorityPackPreview({ packId, isGenerating }: AuthorityPackPrev
         </div>
         <h2 className="text-xl font-semibold">Generate your first Authority Pack</h2>
         <p className="text-sm text-[#64748B]">
-          Turn one episode into a structured authority document with hooks, posts, and a repurposing matrix.
+          Turn one episode into a structured authority document with hooks, platform-ready assets, and a newsletter.
         </p>
         <ol className="space-y-2 text-sm text-[#64748B]">
           <li>1. Paste transcript or link on the left</li>
@@ -292,10 +279,20 @@ export function AuthorityPackPreview({ packId, isGenerating }: AuthorityPackPrev
   }
 
   const pack = state.pack;
+  if (!pack) {
+    return null;
+  }
+  const regenLimitReached =
+    typeof regenLimit === "number" ? pack.regenerationCount >= regenLimit : false;
+  const regenNotice =
+    regenLimitReached && typeof regenLimit === "number"
+      ? `You've reached your regeneration limit (${pack.regenerationCount}/${regenLimit}). Upgrade to increase capacity.`
+      : null;
   const sourceType = getSourceType(pack.originalInput);
   const rawYoutubeUrl = extractUrl(pack.originalInput);
   const youtubeHref = rawYoutubeUrl;
   const displayYoutubeUrl = truncateText(rawYoutubeUrl, 60);
+  const hasNewsletter = pack.highLeveragePosts.newsletterSummary.trim().length > 0;
 
   return (
     <div className="max-w-[1100px] w-full mx-auto space-y-6">
@@ -326,24 +323,19 @@ export function AuthorityPackPreview({ packId, isGenerating }: AuthorityPackPrev
               packId={pack.id}
               initialHooks={pack.strategicHooks}
               defaultOpen
+              regenLimitReached={regenLimitReached}
+              regenNotice={regenNotice ?? undefined}
             />
           </section>
 
-          <section>
-            <PostPlatformSection
-              packId={pack.id}
-              linkedinPosts={pack.highLeveragePosts.linkedinPosts}
-              twitterThread={pack.highLeveragePosts.twitterThread}
-            />
-          </section>
-
-          <section>
-            <details className="group rounded-2xl border border-neutral-200 bg-white shadow-sm" open>
-              <summary className="flex h-12 items-center justify-between px-5 text-sm font-semibold text-neutral-900 cursor-pointer list-none">
-                <span>Core Thesis</span>
-                <ChevronDown className="h-4 w-4 text-neutral-400 transition-transform duration-200 group-open:rotate-180" />
-              </summary>
-              <div className="px-5 pb-5 pt-5 space-y-4">
+          <section className="border-t border-neutral-200 pt-8">
+            <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+              <div className="px-5 pt-4">
+                <h2 className="text-sm font-semibold text-neutral-900">
+                  Core Thesis
+                </h2>
+              </div>
+              <div className="px-5 pb-5 pt-4 space-y-4">
                 <p className="text-base text-neutral-800">
                   {pack.coreThesis.primaryThesis}
                 </p>
@@ -359,16 +351,17 @@ export function AuthorityPackPreview({ packId, isGenerating }: AuthorityPackPrev
                   </span>
                 </p>
               </div>
-            </details>
+            </div>
           </section>
 
-          <section>
-            <details className="group rounded-2xl border border-neutral-200 bg-white shadow-sm">
-              <summary className="flex h-12 items-center justify-between px-5 text-sm font-semibold text-neutral-900 cursor-pointer list-none">
-                <span>Insight Breakdown</span>
-                <ChevronDown className="h-4 w-4 text-neutral-400 transition-transform duration-200 group-open:rotate-180" />
-              </summary>
-              <div className="px-5 pb-5 pt-5 space-y-4">
+          <section className="border-t border-neutral-200 pt-8">
+            <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+              <div className="px-5 pt-4">
+                <h2 className="text-sm font-semibold text-neutral-900">
+                  Insight Breakdown
+                </h2>
+              </div>
+              <div className="px-5 pb-5 pt-4 space-y-4">
                 <div className="space-y-2">
                   <p className="text-xs uppercase tracking-wide text-neutral-400">
                     Strong Claims
@@ -404,41 +397,25 @@ export function AuthorityPackPreview({ packId, isGenerating }: AuthorityPackPrev
                   </ul>
                 </div>
               </div>
-            </details>
+            </div>
           </section>
 
-          <section>
-            <details className="group rounded-2xl border border-neutral-200 bg-white shadow-sm">
-              <summary className="flex h-12 items-center justify-between px-5 text-sm font-semibold text-neutral-900 cursor-pointer list-none">
-                <span>Repurposing Matrix</span>
-                <ChevronDown className="h-4 w-4 text-neutral-400 transition-transform duration-200 group-open:rotate-180" />
-              </summary>
-              <div className="px-5 pb-5 pt-5">
-                <div className="overflow-hidden rounded-xl border border-neutral-200">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-400">
-                      <tr>
-                        <th className="px-3 py-2 font-medium">Asset</th>
-                        <th className="px-3 py-2 font-medium">Platform</th>
-                        <th className="px-3 py-2 font-medium">Format</th>
-                        <th className="px-3 py-2 font-medium">Angle</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-200 text-neutral-700">
-                      {pack.repurposingMatrix.entries.map((entry, index) => (
-                        <tr key={`${entry.asset}-${index}`}>
-                          <td className="px-3 py-2">{entry.asset}</td>
-                          <td className="px-3 py-2">{entry.platform}</td>
-                          <td className="px-3 py-2">{entry.format}</td>
-                          <td className="px-3 py-2">{entry.angle}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </details>
+          <section className="border-t border-neutral-200 pt-8">
+            <PostPlatformSection
+              packId={pack.id}
+              linkedinPosts={pack.highLeveragePosts.linkedinPosts}
+              twitterThread={pack.highLeveragePosts.twitterThread}
+              showInsightGuardLink={false}
+              regenLimitReached={regenLimitReached}
+              regenNotice={regenNotice ?? undefined}
+            />
           </section>
+
+          {hasNewsletter && (
+            <section className="border-t border-neutral-200 pt-8">
+              <NewsletterSection content={pack.highLeveragePosts.newsletterSummary} />
+            </section>
+          )}
         </div>
 
         <aside className="space-y-8 lg:sticky lg:top-8">
@@ -481,4 +458,9 @@ export function AuthorityPackPreview({ packId, isGenerating }: AuthorityPackPrev
     </div>
   );
 }
+
+
+
+
+
 

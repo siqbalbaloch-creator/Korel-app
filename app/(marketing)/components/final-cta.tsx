@@ -1,6 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { logMarketingEvent } from "@/lib/marketingEvents";
+
 export function FinalCTA() {
+  const router = useRouter();
+
   return (
     <section 
       className="px-6 relative overflow-hidden" 
@@ -60,6 +65,10 @@ export function FinalCTA() {
             e.currentTarget.style.transform = 'translateY(0)';
             e.currentTarget.style.boxShadow = '0 6px 20px rgba(109, 94, 243, 0.15)';
             e.currentTarget.style.filter = 'brightness(1)';
+          }}
+          onClick={() => {
+            void logMarketingEvent("CTA_CLICK", { cta: "final_cta_generate" });
+            router.push('/new');
           }}
         >
           Generate Your First Pack

@@ -9,7 +9,7 @@ type PostCardProps = {
 };
 
 const platformLabel = (platform: PostCardProps["platform"]) =>
-  platform === "linkedin" ? "LinkedIn" : "X Threads";
+  platform === "linkedin" ? "LinkedIn" : "X Thread";
 
 const renderThreadLine = (line: string, index: number) => {
   const trimmed = line.trim();
@@ -59,7 +59,7 @@ export default function PostCard({
         </div>
       ) : null}
       {isThread ? (
-        <div className="mt-4 max-h-64 space-y-3 overflow-y-auto pr-2 text-sm text-neutral-700 leading-relaxed">
+        <div className="mt-4 space-y-3 text-sm text-neutral-700 leading-relaxed">
           {normalizedLines?.map((line, index) => (
             <div
               key={`${label}-${index}`}

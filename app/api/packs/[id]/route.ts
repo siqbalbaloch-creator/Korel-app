@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ensureDemoUser } from "@/lib/demo-user";
+import { getServerAuthSession } from "@/lib/auth";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -8,10 +8,14 @@ type RouteParams = {
 
 export async function GET(_request: Request, { params }: RouteParams) {
   const { id } = await params;
-  const user = await ensureDemoUser();
+  const session = await getServerAuthSession();
+  const userId = session?.user?.id;
+  if (!userId) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
 
   const pack = await prisma.authorityPack.findFirst({
-    where: { id, userId: user.id },
+    where: { id, userId },
   });
 
   if (!pack) {
@@ -29,6 +33,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
     insightBreakdown: pack.insightBreakdown,
     repurposingMatrix: pack.repurposingMatrix,
     executiveSummary: pack.executiveSummary,
+    strategicMap: pack.strategicMap,
+    messagingStrength: pack.messagingStrength,
+    authorityConsistency: pack.authorityConsistency,
+    regenerationCount: pack.regenerationCount,
   });
 }
-

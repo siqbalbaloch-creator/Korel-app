@@ -1,151 +1,223 @@
-"use client";
-
-import { FileUp, Lightbulb, Package } from 'lucide-react';
+const CARDS = [
+  {
+    number: '01',
+    title: 'Input with Intent',
+    body: 'Paste transcript or update. Select your angle and authority profile.',
+    bullets: ['Interview / Investor Update', 'Angle selection', 'Thesis & positioning'],
+    highlight: false,
+  },
+  {
+    number: '02',
+    title: 'Strategic Authority Map',
+    body: 'Korel builds structured logic before writing.',
+    bullets: ['Core thesis', 'Three strategic claims', 'Evidence per claim', 'Objection handling', 'Hook matrix'],
+    highlight: true,
+  },
+  {
+    number: '03',
+    title: 'Platform-Ready Assets',
+    body: 'Generated from structure — not randomness.',
+    bullets: ['LinkedIn posts', 'X threads', 'Newsletter drafts', 'Hook variations'],
+    highlight: false,
+  },
+  {
+    number: '04',
+    title: 'Authority Engine',
+    body: 'Every pack is evaluated and tracked over time.',
+    bullets: ['Messaging Strength', 'Consistency scoring', 'Weakness radar', 'Drift detection'],
+    highlight: false,
+  },
+] as const;
 
 export function HowItWorks() {
   return (
-    <section 
+    <section
       id="how-it-works"
-      className="px-6" 
-      style={{ paddingTop: '152px', paddingBottom: '152px', backgroundColor: '#ffffff' }}
+      className="px-6"
+      style={{ paddingTop: '104px', paddingBottom: '104px', backgroundColor: '#ffffff' }}
     >
       <div className="mx-auto" style={{ maxWidth: '1100px' }}>
-        <div className="text-center" style={{ marginBottom: '64px' }}>
-          <h2 
-            style={{ 
-              color: '#1F2937', 
-              fontWeight: 600,
-              fontSize: '40px',
+
+        {/* Header */}
+        <div className="text-center" style={{ marginBottom: '52px' }}>
+          <h2
+            style={{
+              color: '#1F2937',
+              fontWeight: 700,
+              fontSize: '38px',
               marginBottom: '12px',
-              letterSpacing: '-0.01em',
-              lineHeight: '1.2'
+              letterSpacing: '-0.02em',
+              lineHeight: '1.15',
             }}
           >
-            How KOREL Works
+            How Korel Works
           </h2>
-          <p 
-            style={{ 
-              color: '#6B7280',
+          <p
+            style={{
+              color: '#64748B',
               fontSize: '17px',
               fontWeight: 400,
               lineHeight: '1.6',
-              maxWidth: '560px',
-              margin: '0 auto'
+              margin: 0,
             }}
           >
-            Three simple steps to multiply your authority
+            A structured authority engine — not a content generator.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: '28px' }}>
-          <Step 
-            number="1"
-            icon={<FileUp size={22} strokeWidth={1.5} />}
-            title="Paste Transcript"
-            description="Upload transcript or YouTube link. No manual formatting required."
-          />
-          <Step 
-            number="2"
-            icon={<Lightbulb size={22} strokeWidth={1.5} />}
-            title="Extract Core Frameworks"
-            description="KOREL identifies your strongest ideas automatically."
-          />
-          <Step 
-            number="3"
-            icon={<Package size={22} strokeWidth={1.5} />}
-            title="Generate Structured Pack"
-            description="Receive a full week of authority-ready content."
-          />
+        {/* 4-card grid: 4 col desktop / 2x2 tablet / stacked mobile */}
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+          style={{ gap: '20px', marginBottom: '64px' }}
+        >
+          {CARDS.map((card) => (
+            <SystemCard key={card.number} {...card} />
+          ))}
         </div>
+
+        {/* Closing CTA */}
+        <div
+          className="text-center"
+          style={{
+            paddingTop: '52px',
+            borderTop: '1px solid rgba(0, 0, 0, 0.06)',
+          }}
+        >
+          <h3
+            style={{
+              color: '#1F2937',
+              fontWeight: 700,
+              fontSize: '32px',
+              letterSpacing: '-0.02em',
+              lineHeight: '1.2',
+              marginBottom: '28px',
+            }}
+          >
+            Authority compounds.
+          </h3>
+          <a
+            href="/new"
+            style={{
+              display: 'inline-block',
+              background: 'linear-gradient(135deg, #6D5EF3 0%, #8B7CFF 100%)',
+              color: '#ffffff',
+              fontWeight: 600,
+              fontSize: '16px',
+              height: '52px',
+              lineHeight: '52px',
+              paddingLeft: '32px',
+              paddingRight: '32px',
+              borderRadius: '12px',
+              textDecoration: 'none',
+              boxShadow: '0 6px 20px rgba(109, 94, 243, 0.2)',
+            }}
+          >
+            Create Your Authority Pack
+          </a>
+        </div>
+
       </div>
     </section>
   );
 }
 
-function Step({ 
-  number, 
-  icon, 
-  title, 
-  description 
-}: { 
-  number: string; 
-  icon: React.ReactNode; 
-  title: string; 
-  description: string;
+function SystemCard({
+  number,
+  title,
+  body,
+  bullets,
+  highlight,
+}: {
+  number: string;
+  title: string;
+  body: string;
+  bullets: readonly string[];
+  highlight: boolean;
 }) {
   return (
-    <div 
-      style={{ 
-        backgroundColor: '#FFFFFF',
-        border: '1px solid rgba(0, 0, 0, 0.05)',
+    <div
+      style={{
+        backgroundColor: highlight ? '#FAFAFF' : '#FFFFFF',
+        border: highlight
+          ? '1px solid rgba(109, 94, 243, 0.22)'
+          : '1px solid rgba(0, 0, 0, 0.07)',
         borderRadius: '16px',
-        padding: '36px',
-        boxShadow: '0 4px 18px rgba(0, 0, 0, 0.06)',
-        transition: 'all 0.3s ease',
-        height: '100%'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.boxShadow = '0 12px 28px rgba(15, 23, 42, 0.08)';
-        e.currentTarget.style.borderColor = 'rgba(109, 94, 243, 0.2)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 4px 18px rgba(0, 0, 0, 0.06)';
-        e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.05)';
+        padding: '28px 24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
       }}
     >
-      <div 
-        className="flex items-center justify-center"
-        style={{ 
-          width: '52px',
-          height: '52px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(109, 94, 243, 0.08)',
-          color: '#6D5EF3',
-          marginBottom: '20px',
-          opacity: 0.8
-        }}
-      >
-        {icon}
-      </div>
-      
-      <div 
-        style={{ 
+      {/* Number label */}
+      <span
+        style={{
           color: '#9B7FFF',
-          fontWeight: 600,
           fontSize: '11px',
-          letterSpacing: '0.05em',
+          fontWeight: 700,
+          letterSpacing: '0.1em',
           textTransform: 'uppercase',
-          marginBottom: '10px'
         }}
       >
-        Step {number}
+        {number}
+      </span>
+
+      {/* Title + body */}
+      <div>
+        <h3
+          style={{
+            color: '#0F172A',
+            fontWeight: 600,
+            fontSize: '17px',
+            lineHeight: '1.3',
+            letterSpacing: '-0.01em',
+            marginBottom: '8px',
+          }}
+        >
+          {title}
+        </h3>
+        <p
+          style={{
+            color: '#64748B',
+            fontSize: '14px',
+            lineHeight: '1.6',
+            margin: 0,
+          }}
+        >
+          {body}
+        </p>
       </div>
-      
-      <h3 
-        style={{ 
-          color: '#0F172A', 
-          fontWeight: 600,
-          fontSize: '20px',
-          marginBottom: '10px',
-          letterSpacing: '0',
-          lineHeight: '1.3'
+
+      {/* Micro bullets */}
+      <ul
+        style={{
+          listStyle: 'none',
+          padding: 0,
+          margin: 0,
+          paddingTop: '14px',
+          borderTop: '1px solid rgba(0, 0, 0, 0.05)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '7px',
+          marginTop: 'auto',
         }}
       >
-        {title}
-      </h3>
-      
-      <p 
-        style={{ 
-          color: '#64748B',
-          fontSize: '15px',
-          lineHeight: '1.6',
-          fontWeight: 400
-        }}
-      >
-        {description}
-      </p>
+        {bullets.map((item) => (
+          <li
+            key={item}
+            style={{
+              color: '#475569',
+              fontSize: '13px',
+              lineHeight: '1.4',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span style={{ color: '#C4B5FD', fontWeight: 700, flexShrink: 0 }}>&bull;</span>
+            {item}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

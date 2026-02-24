@@ -2,9 +2,14 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { CreditCard, Folder, Settings, Sparkles } from "lucide-react";
+import { CreditCard, Folder, LayoutDashboard, LifeBuoy, Settings, Sparkles } from "lucide-react";
 
 const navItems = [
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+  },
   {
     href: "/new",
     label: "New Pack",
@@ -19,6 +24,11 @@ const navItems = [
     href: "/billing",
     label: "Billing",
     icon: CreditCard,
+  },
+  {
+    href: "/support",
+    label: "Support",
+    icon: LifeBuoy,
   },
   {
     href: "/settings",

@@ -32,7 +32,7 @@ export default function PacksList({ packs }: PacksListProps) {
       <div className="space-y-4">
         {packs.length === 0 && (
           <div className="bg-white rounded-[12px] shadow-sm border border-black/5 p-5 text-sm text-[rgba(0,0,0,0.6)] transition-all duration-[160ms] ease hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(0,0,0,0.06)]">
-            No packs yet. Generate your first Authority Pack to see it here.
+            No Authority Packs yet. Generate your first Authority Pack to see it here.
           </div>
         )}
 

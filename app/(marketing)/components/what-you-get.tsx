@@ -1,211 +1,355 @@
 "use client";
 
-import { Linkedin, Twitter, Video, Mail } from 'lucide-react';
+import { useEffect, useRef, useState } from "react";
+import { LayoutGrid, FileSearch, RefreshCw, CheckCircle2 } from "lucide-react";
+
+const SAM_TREE = [
+  { label: "Core Thesis",         level: 0 },
+  { label: "3 Strategic Claims",  level: 1 },
+  { label: "Evidence per Claim",  level: 2 },
+  { label: "Objection Handling",  level: 2 },
+  { label: "Hook Matrix",         level: 1 },
+] as const;
+
+const PILLARS = [
+  { icon: LayoutGrid, title: "Structured Outputs",        sub: "Coherent content architecture"  },
+  { icon: FileSearch, title: "Deterministic Evaluation",  sub: "Evidence-based positioning"     },
+  { icon: RefreshCw,  title: "Cross-Pack Consistency",    sub: "Unified messaging system"       },
+] as const;
+
+const BULLETS = [
+  "Every interview becomes a coherent thesis",
+  "Claims are supported with structured evidence",
+  "Objections are anticipated and addressed",
+  "Platform assets inherit the same positioning",
+  "Messaging weaknesses are identified and reduced",
+  "Authority compounds through consistency",
+] as const;
+
+// dot color by indent level
+const DOT_COLORS = ["#6366F1", "#8B7FFF", "#A78BFA"] as const;
 
 export function WhatYouGet() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section className="px-6" style={{ paddingTop: '152px', paddingBottom: '152px', backgroundColor: '#ffffff' }}>
-      <div className="mx-auto" style={{ maxWidth: '1100px' }}>
-        <div className="text-center" style={{ marginBottom: '64px' }}>
-          <h2 
-            style={{ 
-              color: '#1F2937', 
-              fontWeight: 600,
-              fontSize: '40px',
-              marginBottom: '12px',
-              letterSpacing: '-0.01em',
-              lineHeight: '1.2'
-            }}
-          >
-            Your Authority Pack Includes
-          </h2>
-          <p 
-            style={{ 
-              color: '#6B7280',
-              fontSize: '17px',
-              fontWeight: 400,
-              lineHeight: '1.6',
-              maxWidth: '560px',
-              margin: '0 auto'
-            }}
-          >
-            Platform-optimized content ready to publish
-          </p>
-        </div>
+    <>
+      <style>{`
+        @keyframes sam-breathe {
+          0%, 100% {
+            box-shadow: 0 0 24px rgba(99, 102, 241, 0.15),
+                        inset 0 0 24px rgba(99, 102, 241, 0.03);
+          }
+          50% {
+            box-shadow: 0 0 52px rgba(99, 102, 241, 0.32),
+                        inset 0 0 40px rgba(99, 102, 241, 0.07);
+          }
+        }
+      `}</style>
 
-        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: '28px' }}>
-          <Card
-            icon={<Linkedin size={20} strokeWidth={1.5} />}
-            iconColor="#0A66C2"
-            platform="LinkedIn Posts"
-            preview="The best authority content comes from insights you already shared.\n\nHere's how to extract and multiply them..."
-            benefits={[
-              'Structured for authority building',
-              'Hook-first format',
-              'Optimized for engagement'
-            ]}
-          />
-          <Card
-            icon={<Twitter size={20} strokeWidth={1.5} />}
-            iconColor="#1DA1F2"
-            platform="X Thread"
-            preview="1/ Most creators sit on hours of valuable content\n\n2/ But distribution remains manual\n\n3/ KOREL automates extraction"
-            benefits={[
-              'Numbered sequential format',
-              'Core insight extraction',
-              'Native thread structure'
-            ]}
-          />
-          <Card
-            icon={<Video size={20} strokeWidth={1.5} />}
-            iconColor="#FF0050"
-            platform="Short Scripts"
-            preview='HOOK: "Stop starting from scratch"\n\nSETUP: Your authority is already there\n\nPAYOFF: Extract it instantly'
-            benefits={[
-              'Platform-ready formats',
-              'Hook and payoff structure',
-              'TikTok / Reels / Shorts'
-            ]}
-          />
-          <Card
-            icon={<Mail size={20} strokeWidth={1.5} />}
-            iconColor="#9B7FFF"
-            platform="Newsletter"
-            preview="Subject: The Authority Multiplier Effect\n\nWhy one great conversation contains a week of content..."
-            benefits={[
-              'Long-form essay version',
-              'Structured narrative',
-              'Copy-paste ready'
-            ]}
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Card({ 
-  icon,
-  iconColor,
-  platform, 
-  preview,
-  benefits 
-}: { 
-  icon: React.ReactNode;
-  iconColor: string;
-  platform: string; 
-  preview: string;
-  benefits: string[];
-}) {
-  return (
-    <div 
-      className="group cursor-pointer"
-      style={{ 
-        border: '1px solid rgba(0, 0, 0, 0.05)',
-        borderRadius: '16px',
-        backgroundColor: '#FFFFFF',
-        padding: '32px',
-        transition: 'all 0.3s ease',
-        boxShadow: '0 4px 18px rgba(0, 0, 0, 0.06)',
-        height: '100%'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 12px 28px rgba(15, 23, 42, 0.08)';
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.borderColor = 'rgba(109, 94, 243, 0.2)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '0 4px 18px rgba(0, 0, 0, 0.06)';
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.05)';
-      }}
-    >
-      {/* Icon */}
-      <div 
-        className="flex items-center justify-center"
-        style={{ 
-          width: '44px',
-          height: '44px',
-          borderRadius: '10px',
-          backgroundColor: 'rgba(109, 94, 243, 0.08)',
-          color: iconColor,
-          marginBottom: '18px',
-          opacity: 0.8
+      <section
+        ref={sectionRef}
+        className="px-6 relative overflow-hidden"
+        style={{
+          paddingTop: '120px',
+          paddingBottom: '120px',
+          background: 'linear-gradient(135deg, #090D26 0%, #0F1240 55%, #0C1030 100%)',
         }}
       >
-        {icon}
-      </div>
-
-      {/* Platform name */}
-      <h3 
-        style={{ 
-          color: '#0F172A', 
-          fontWeight: 600,
-          fontSize: '20px',
-          marginBottom: '14px',
-          letterSpacing: '0',
-          lineHeight: '1.3'
-        }}
-      >
-        {platform}
-      </h3>
-
-      {/* Real Content Preview */}
-      <div 
-        style={{ 
-          backgroundColor: '#F8FAFC',
-          border: '1px solid #E2E8F0',
-          borderRadius: '10px',
-          padding: '16px',
-          marginBottom: '18px',
-          minHeight: '110px',
-          fontFamily: 'monospace'
-        }}
-      >
-        <p 
-          style={{ 
-            color: '#475569',
-            fontSize: '12px',
-            lineHeight: '1.6',
-            whiteSpace: 'pre-wrap',
-            margin: 0,
-            fontWeight: 400
+        {/* Radial glow — top left */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            top: '-10%',
+            left: '-8%',
+            width: '620px',
+            height: '620px',
+            background: 'radial-gradient(circle, rgba(99, 102, 241, 0.14) 0%, transparent 68%)',
           }}
-        >
-          {preview}
-        </p>
-      </div>
+        />
+        {/* Radial glow — bottom right */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            bottom: '-15%',
+            right: '-8%',
+            width: '520px',
+            height: '520px',
+            background: 'radial-gradient(circle, rgba(139, 92, 246, 0.11) 0%, transparent 65%)',
+          }}
+        />
 
-      {/* Benefits */}
-      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
-        {benefits.map((benefit, index) => (
-          <li 
-            key={index}
-            style={{ 
-              color: '#64748B',
-              fontSize: '14px',
-              lineHeight: '1.6',
-              marginBottom: index < benefits.length - 1 ? '8px' : '0',
-              paddingLeft: '18px',
-              position: 'relative',
-              fontWeight: 400
-            }}
+        <div className="relative mx-auto" style={{ maxWidth: '1100px' }}>
+          <div
+            className="grid grid-cols-1 lg:grid-cols-2"
+            style={{ gap: '72px', alignItems: 'center' }}
           >
-            <span 
-              style={{ 
-                position: 'absolute',
-                left: '0',
-                color: iconColor,
-                fontWeight: 700,
-                fontSize: '15px'
+
+            {/* ── LEFT: SAM card + pillars ── */}
+            <div
+              style={{
+                opacity: visible ? 1 : 0,
+                transform: visible ? 'translateX(0)' : 'translateX(-28px)',
+                transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s',
               }}
             >
-              •
-            </span>
-            {benefit}
-          </li>
-        ))}
-      </ul>
-    </div>
+              {/* SAM card */}
+              <div
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                  borderRadius: '16px',
+                  border: '1px solid rgba(99, 102, 241, 0.22)',
+                  padding: '28px 28px 32px',
+                  marginBottom: '16px',
+                  backdropFilter: 'blur(8px)',
+                  animation: visible ? 'sam-breathe 4s ease-in-out infinite' : undefined,
+                }}
+              >
+                {/* Card header */}
+                <div style={{ marginBottom: '24px' }}>
+                  <p
+                    style={{
+                      color: '#F1F5F9',
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      margin: '0 0 3px',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    Strategic Authority Map (SAM)
+                  </p>
+                  <p style={{ color: 'rgba(255,255,255,0.32)', fontSize: '12px', margin: 0 }}>
+                    Preview
+                  </p>
+                </div>
+
+                {/* Tree hierarchy */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {SAM_TREE.map((item, i) => {
+                    const hovered = hoveredItem === i;
+                    const delay = 0.35 + i * 0.08;
+                    return (
+                      <div
+                        key={item.label}
+                        onMouseEnter={() => setHoveredItem(i)}
+                        onMouseLeave={() => setHoveredItem(null)}
+                        style={{
+                          paddingLeft: `${item.level * 24}px`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '11px',
+                          cursor: 'default',
+                          opacity: visible ? 1 : 0,
+                          transform: visible ? 'translateX(0)' : 'translateX(-10px)',
+                          transition: `opacity 0.5s ease ${delay}s, transform 0.5s ease ${delay}s`,
+                        }}
+                      >
+                        {/* Dot */}
+                        <div
+                          style={{
+                            width:  item.level === 0 ? '9px' : item.level === 1 ? '7px' : '6px',
+                            height: item.level === 0 ? '9px' : item.level === 1 ? '7px' : '6px',
+                            borderRadius: '50%',
+                            flexShrink: 0,
+                            backgroundColor: hovered ? '#ffffff' : DOT_COLORS[item.level],
+                            boxShadow: hovered ? `0 0 10px ${DOT_COLORS[item.level]}` : 'none',
+                            transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
+                          }}
+                        />
+                        {/* Label */}
+                        <span
+                          style={{
+                            color: hovered
+                              ? '#ffffff'
+                              : item.level === 0
+                              ? '#E2E8F0'
+                              : item.level === 1
+                              ? '#B8C0D8'
+                              : '#8E96B8',
+                            fontSize: item.level === 0 ? '14px' : '13px',
+                            fontWeight: item.level === 0 ? 500 : 400,
+                            lineHeight: '1.4',
+                            transition: 'color 0.2s ease',
+                          }}
+                        >
+                          {item.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Pillars strip */}
+              <div
+                className="grid grid-cols-3"
+                style={{
+                  gap: '12px',
+                  opacity: visible ? 1 : 0,
+                  transform: visible ? 'translateY(0)' : 'translateY(14px)',
+                  transition: 'opacity 0.55s ease 0.65s, transform 0.55s ease 0.65s',
+                }}
+              >
+                {PILLARS.map(({ icon: Icon, title, sub }) => (
+                  <div
+                    key={title}
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.07)',
+                      borderRadius: '12px',
+                      padding: '18px 12px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        marginBottom: '10px',
+                        color: 'rgba(255,255,255,0.28)',
+                      }}
+                    >
+                      <Icon size={18} strokeWidth={1.5} />
+                    </div>
+                    <p
+                      style={{
+                        color: '#E2E8F0',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        margin: '0 0 3px',
+                        lineHeight: '1.3',
+                      }}
+                    >
+                      {title}
+                    </p>
+                    <p
+                      style={{
+                        color: 'rgba(255,255,255,0.35)',
+                        fontSize: '11px',
+                        margin: 0,
+                        lineHeight: '1.4',
+                      }}
+                    >
+                      {sub}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── RIGHT: headline + bullets + CTA ── */}
+            <div
+              style={{
+                opacity: visible ? 1 : 0,
+                transform: visible ? 'translateX(0)' : 'translateX(28px)',
+                transition: 'opacity 0.6s ease 0.2s, transform 0.6s ease 0.2s',
+              }}
+            >
+              <h2
+                style={{
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  fontSize: '40px',
+                  letterSpacing: '-0.025em',
+                  lineHeight: '1.13',
+                  marginBottom: '20px',
+                }}
+              >
+                Built for B2B Founders Who Value Strategic Clarity
+              </h2>
+              <p
+                style={{
+                  color: 'rgba(255, 255, 255, 0.58)',
+                  fontSize: '16px',
+                  lineHeight: '1.72',
+                  marginBottom: '32px',
+                }}
+              >
+                You already generate insight through interviews, updates, and
+                conversations. Korel ensures those insights become structured
+                authority — not scattered posts.
+              </p>
+
+              {/* Bullets */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '32px' }}>
+                {BULLETS.map((text, i) => (
+                  <div
+                    key={text}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '11px',
+                      opacity: visible ? 1 : 0,
+                      transform: visible ? 'translateX(0)' : 'translateX(12px)',
+                      transition: `opacity 0.5s ease ${0.42 + i * 0.07}s, transform 0.5s ease ${0.42 + i * 0.07}s`,
+                    }}
+                  >
+                    <CheckCircle2
+                      size={17}
+                      strokeWidth={2}
+                      style={{ color: '#4ADE80', flexShrink: 0, marginTop: '2px' }}
+                    />
+                    <span
+                      style={{
+                        color: 'rgba(255, 255, 255, 0.82)',
+                        fontSize: '15px',
+                        lineHeight: '1.55',
+                      }}
+                    >
+                      {text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA callout */}
+              <div
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.09)',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  opacity: visible ? 1 : 0,
+                  transition: 'opacity 0.5s ease 0.9s',
+                }}
+              >
+                <p
+                  style={{
+                    color: 'rgba(255,255,255,0.5)',
+                    fontSize: '14px',
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                  }}
+                >
+                  <span style={{ color: '#6366F1', fontWeight: 700 }}>•</span>
+                  Early access — private founder cohort.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
