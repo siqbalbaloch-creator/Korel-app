@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
-import type { TooltipProps } from "recharts";
 import type { LegendPayload, VerticalAlignmentType } from "recharts/types/component/DefaultLegendContent";
 
 import { cn } from "./utils";
@@ -106,8 +105,66 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ChartTooltipContent(props: TooltipProps<any, any>) {
+type ChartTooltipPayloadItem = {
+  name?: React.ReactNode;
+  value?: React.ReactNode;
+  [key: string]: unknown;
+};
+
+type ChartTooltipContentProps = {
+  active?: boolean;
+  payload?: ChartTooltipPayloadItem[];
+  label?: React.ReactNode;
+
+  className?: string;
+  indicator?: "dot" | "line" | "dashed";
+  hideLabel?: boolean;
+  hideIndicator?: boolean;
+  labelFormatter?: (
+    label: React.ReactNode,
+    payload: ChartTooltipPayloadItem[],
+  ) => React.ReactNode;
+  labelClassName?: string;
+  formatter?: (
+    value: ChartTooltipPayloadItem["value"],
+    name: ChartTooltipPayloadItem["name"],
+    item: ChartTooltipPayloadItem,
+    index: number,
+    payload: unknown,
+  ) => React.ReactNode;
+  color?: string;
+  nameKey?: string;
+  labelKey?: string;
+
+  [key: string]: unknown;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const isStringOrNumber = (value: unknown): value is string | number =>
+  typeof value === "string" || typeof value === "number";
+
+const isStringOrNumberArray = (
+  value: unknown,
+): value is ReadonlyArray<string | number> =>
+  Array.isArray(value) && value.every(isStringOrNumber);
+
+const getKeyPart = (value: unknown): string | undefined =>
+  isStringOrNumber(value) ? String(value) : undefined;
+
+const getPayloadFill = (value: unknown): string | undefined => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return typeof value.fill === "string" ? value.fill : undefined;
+};
+
+const getItemColor = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
+
+function ChartTooltipContent(props: ChartTooltipContentProps) {
   const {
     active,
     payload,
@@ -132,7 +189,9 @@ function ChartTooltipContent(props: TooltipProps<any, any>) {
     }
 
     const [item] = payload;
-    const key = `${labelKey || item?.dataKey || item?.name || "value"}`;
+    const dataKey = getKeyPart(item?.dataKey);
+    const itemName = getKeyPart(item?.name);
+    const key = `${labelKey || dataKey || itemName || "value"}`;
     const itemConfig = getPayloadConfigFromPayload(config, item, key);
     const value =
       !labelKey && typeof label === "string"
@@ -177,10 +236,15 @@ function ChartTooltipContent(props: TooltipProps<any, any>) {
     >
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
-        {payload.map((item: any, index: number) => {
-          const key = `${nameKey || item.name || item.dataKey || "value"}`;
+        {payload.map((item, index) => {
+          const itemName = getKeyPart(item.name);
+          const dataKey = getKeyPart(item.dataKey);
+          const key = `${nameKey || itemName || dataKey || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
-          const indicatorColor = color || item.payload?.fill || item.color;
+          const indicatorColor =
+            color ||
+            getPayloadFill(item.payload) ||
+            getItemColor(item.color);
 
           return (
             <div
@@ -230,11 +294,13 @@ function ChartTooltipContent(props: TooltipProps<any, any>) {
                         {itemConfig?.label || item.name}
                       </span>
                     </div>
-                    {item.value && (
-                      <span className="text-foreground font-mono font-medium tabular-nums">
-                        {item.value.toLocaleString()}
-                      </span>
-                    )}
+                    {item.value &&
+                      (isStringOrNumber(item.value) ||
+                        isStringOrNumberArray(item.value)) && (
+                        <span className="text-foreground font-mono font-medium tabular-nums">
+                          {item.value.toLocaleString()}
+                        </span>
+                      )}
                   </div>
                 </>
               )}
