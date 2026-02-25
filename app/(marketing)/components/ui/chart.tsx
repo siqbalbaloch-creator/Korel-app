@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
-import type { TooltipProps } from "recharts";
 import type { LegendPayload, VerticalAlignmentType } from "recharts/types/component/DefaultLegendContent";
 
 import { cn } from "./utils";
@@ -106,8 +105,8 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
-function ChartTooltipContent(props: TooltipProps<any, any>) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function ChartTooltipContent(props: any) {
   const {
     active,
     payload,
@@ -122,7 +121,7 @@ function ChartTooltipContent(props: TooltipProps<any, any>) {
     color,
     nameKey,
     labelKey,
-  } = props as any;
+  } = props;
 
   const { config } = useChart();
 
