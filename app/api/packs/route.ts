@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 import {
@@ -402,9 +403,9 @@ export async function POST(request: Request) {
             insightBreakdown: structuredPack.insightBreakdown,
             repurposingMatrix: structuredPack.repurposingMatrix,
             executiveSummary: structuredPack.executiveSummary,
-            strategicMap: structuredPack.strategicMap ?? null,
-            messagingStrength,
-            authorityConsistency,
+            strategicMap: structuredPack.strategicMap ?? Prisma.JsonNull,
+            messagingStrength: messagingStrength ?? Prisma.JsonNull,
+            authorityConsistency: authorityConsistency ?? Prisma.JsonNull,
             qualityScore: totalScore,
             qualityBreakdown: breakdown,
             lastGeneratedAt: new Date(),

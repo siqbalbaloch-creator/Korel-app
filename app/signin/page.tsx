@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Default to the role-aware redirect so admins land on /admin and users on /new.
@@ -48,78 +48,86 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-6">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4"
+    <form
+      onSubmit={handleSubmit}
+      className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4"
+    >
+      <div className="space-y-1">
+        <h1 className="text-xl font-semibold text-neutral-900">Sign In</h1>
+        <p className="text-sm text-neutral-500">Access your Korel workspace.</p>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleGoogleSignIn}
+        disabled={isGoogleLoading}
+        className="w-full rounded-md border border-neutral-200 bg-white py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-50 disabled:opacity-60"
       >
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold text-neutral-900">Sign In</h1>
-          <p className="text-sm text-neutral-500">Access your Korel workspace.</p>
-        </div>
+        {isGoogleLoading ? "Connecting..." : "Continue with Google"}
+      </button>
 
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={isGoogleLoading}
-          className="w-full rounded-md border border-neutral-200 bg-white py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-50 disabled:opacity-60"
-        >
-          {isGoogleLoading ? "Connecting..." : "Continue with Google"}
-        </button>
+      <div className="flex items-center gap-3 text-xs text-neutral-400">
+        <div className="h-px flex-1 bg-neutral-200" />
+        <span>or</span>
+        <div className="h-px flex-1 bg-neutral-200" />
+      </div>
 
-        <div className="flex items-center gap-3 text-xs text-neutral-400">
-          <div className="h-px flex-1 bg-neutral-200" />
-          <span>or</span>
-          <div className="h-px flex-1 bg-neutral-200" />
-        </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-neutral-700" htmlFor="email">
+          Email
+        </label>
+        <input
+          id="email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
+          required
+        />
+      </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-700" htmlFor="email">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
-            required
-          />
-        </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-neutral-700" htmlFor="password">
+          Password
+        </label>
+        <input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
+          required
+        />
+      </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-700" htmlFor="password">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
-            required
-          />
-        </div>
+      {error ? <p className="text-xs text-red-600">{error}</p> : null}
 
-        {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="w-full rounded-md bg-[#4F46E5] py-2 text-sm font-medium text-white hover:bg-[#4338CA] disabled:opacity-60"
+      >
+        {isSubmitting ? "Signing in..." : "Sign In"}
+      </button>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded-md bg-[#4F46E5] py-2 text-sm font-medium text-white hover:bg-[#4338CA] disabled:opacity-60"
-        >
-          {isSubmitting ? "Signing in..." : "Sign In"}
-        </button>
+      <p className="text-xs text-neutral-500 text-center">
+        Don&apos;t have an account?{" "}
+        <Link href="/signup" className="text-[#4F46E5] hover:underline">
+          Sign up
+        </Link>
+      </p>
+    </form>
+  );
+}
 
-        <p className="text-xs text-neutral-500 text-center">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-[#4F46E5] hover:underline">
-            Sign up
-          </Link>
-        </p>
-      </form>
+export default function SignInPage() {
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-6">
+      <Suspense>
+        <SignInForm />
+      </Suspense>
     </div>
   );
 }

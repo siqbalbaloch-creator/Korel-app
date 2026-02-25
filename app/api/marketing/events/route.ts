@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import { getServerAuthSession } from "@/lib/auth";
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
     rawMeta !== undefined &&
     typeof rawMeta === "object" &&
     !Array.isArray(rawMeta)
-      ? (rawMeta as Record<string, unknown>)
+      ? (rawMeta as Prisma.JsonObject)
       : null;
 
   const session = await getServerAuthSession();

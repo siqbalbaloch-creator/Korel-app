@@ -106,8 +106,8 @@ async function main() {
     throw new Error("Source and target DATABASE_URL are the same.");
   }
 
-  const source = new PrismaClient({ datasources: { db: { url: sourceUrl } } });
-  const target = new PrismaClient({ datasources: { db: { url: targetUrl } } });
+  const source = new PrismaClient({ datasourceUrl: sourceUrl });
+  const target = new PrismaClient({ datasourceUrl: targetUrl });
 
   try {
     const sourceCounts = await getCounts(source);

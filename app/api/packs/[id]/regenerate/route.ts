@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 import {
@@ -270,8 +271,8 @@ export async function POST(
           data: {
             highLeveragePosts: nextHighLeveragePosts,
             strategicMap: sam,
-            messagingStrength,
-            authorityConsistency,
+            messagingStrength: messagingStrength ?? Prisma.JsonNull,
+            authorityConsistency: authorityConsistency ?? Prisma.JsonNull,
             regenerationCount: { increment: 1 },
             lastGeneratedAt: new Date(),
             qualityScore,
@@ -334,8 +335,8 @@ export async function POST(
           data: {
             highLeveragePosts: nextHighLeveragePosts,
             strategicMap: sam,
-            messagingStrength,
-            authorityConsistency,
+            messagingStrength: messagingStrength ?? Prisma.JsonNull,
+            authorityConsistency: authorityConsistency ?? Prisma.JsonNull,
             regenerationCount: { increment: 1 },
             lastGeneratedAt: new Date(),
             qualityScore,
@@ -381,8 +382,8 @@ export async function POST(
           data: {
             strategicHooks: hooks,
             strategicMap: sam,
-            messagingStrength,
-            authorityConsistency,
+            messagingStrength: messagingStrength ?? Prisma.JsonNull,
+            authorityConsistency: authorityConsistency ?? Prisma.JsonNull,
             regenerationCount: { increment: 1 },
             lastGeneratedAt: new Date(),
             qualityScore,

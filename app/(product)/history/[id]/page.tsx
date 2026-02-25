@@ -268,7 +268,7 @@ const parseStrategicMap = (
 
   const strategicClaims = Array.isArray(value.strategicClaims)
     ? value.strategicClaims
-        .filter(isRecord)
+        .filter((c): c is Prisma.JsonObject => c !== null && typeof c === "object" && !Array.isArray(c))
         .map((claim) => ({
           id: toString(claim.id),
           claim: toString(claim.claim),
@@ -284,7 +284,7 @@ const parseStrategicMap = (
     : null;
   const categories = hookMatrixRecord && Array.isArray(hookMatrixRecord.categories)
     ? hookMatrixRecord.categories
-        .filter(isRecord)
+        .filter((c): c is Prisma.JsonObject => c !== null && typeof c === "object" && !Array.isArray(c))
         .map((cat) => ({
           category: toString(cat.category),
           hooks: toNonEmptyStrings(cat.hooks),
