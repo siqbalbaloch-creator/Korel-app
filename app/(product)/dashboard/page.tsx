@@ -10,13 +10,7 @@ import DashboardClient from "./dashboard-client";
 import PacksList from "./packs-list";
 
 type QualityTrendPack = { qualityScore?: number | null };
-type RadarIssue = {
-  id: string | number;
-  title: string;
-  severity: string;
-  evidence: { affectedPacks: number };
-  recommendation: string;
-};
+type RadarIssue = { id: string; title: string };
 
 function motivationalMessage(totalPacks: number): string {
   if (totalPacks === 0) return "Welcome. Generate your first Authority Pack to get started.";
@@ -355,22 +349,29 @@ export default async function DashboardPage({
                 </p>
               ) : (
                 <ul className="space-y-3">
-                  {radarIssues.map((issue) => (
+                  {radarIssues.map((issue, index) => {
+                    const detail = radar.issues[index] as {
+                      severity: string;
+                      evidence: { affectedPacks: number };
+                      recommendation: string;
+                    };
+                    return (
                     <li key={issue.id} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
                         <span className="font-medium text-neutral-900">{issue.title}</span>
                         <span className="text-xs uppercase tracking-wide text-neutral-400">
-                          {issue.severity}
+                          {detail.severity}
                         </span>
                       </div>
                       <p className="text-xs text-neutral-500">
-                        {issue.evidence.affectedPacks}/{radarAnalyzed} recent packs
+                        {detail.evidence.affectedPacks}/{radarAnalyzed} recent packs
                       </p>
                       <p className="text-xs text-neutral-600">
-                        {issue.recommendation}
+                        {detail.recommendation}
                       </p>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </div>
