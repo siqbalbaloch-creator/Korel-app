@@ -151,8 +151,8 @@ export default async function DashboardPage({
   const qualityTrendPacks: QualityTrendPack[] = qualityTrendPacksRaw;
 
   // Quality trend: avg of last 5 vs previous 5 packs
-  const recent5 = qualityTrendPacks.slice(0, 5).map((p) => p.qualityScore ?? 0);
-  const prev5 = qualityTrendPacks.slice(5, 10).map((p) => p.qualityScore ?? 0);
+  const recent5 = qualityTrendPacks.slice(0, 5).map((p: QualityTrendPack) => p.qualityScore ?? 0);
+  const prev5 = qualityTrendPacks.slice(5, 10).map((p: QualityTrendPack) => p.qualityScore ?? 0);
   const recentAvg = recent5.length >= 2
     ? Math.round(recent5.reduce((a, b) => a + b, 0) / recent5.length)
     : null;
