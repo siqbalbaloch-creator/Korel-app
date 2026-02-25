@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CASE_STUDIES } from "../data";
 
 type CaseStudiesNavProps = {
@@ -16,7 +17,7 @@ export default function CaseStudiesNav({ current }: CaseStudiesNavProps) {
         </p>
       </div>
       <nav className="space-y-1">
-        <a
+        <Link
           href="/case-studies"
           className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
             current === "index"
@@ -25,11 +26,11 @@ export default function CaseStudiesNav({ current }: CaseStudiesNavProps) {
           }`}
         >
           Overview
-        </a>
+        </Link>
         {CASE_STUDIES.map((study) => {
           const isActive = current === study.slug;
           return (
-            <a
+            <Link
               key={study.slug}
               href={`/case-studies/${study.slug}`}
               className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
@@ -39,7 +40,7 @@ export default function CaseStudiesNav({ current }: CaseStudiesNavProps) {
               }`}
             >
               {study.title}
-            </a>
+            </Link>
           );
         })}
       </nav>

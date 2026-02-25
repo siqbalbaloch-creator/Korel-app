@@ -1,6 +1,15 @@
 import { requireAdmin } from "@/lib/requireAdmin";
 import { prisma } from "@/lib/prisma";
 
+type AdminPackRow = {
+  id: string;
+  title: string;
+  status: string;
+  qualityScore: number | null;
+  createdAt: Date;
+  user: { email: string | null };
+};
+
 const formatDate = (date: Date) =>
   date.toLocaleDateString("en-US", {
     month: "short",
@@ -61,7 +70,7 @@ export default async function AdminPacksPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {packs.map((pack) => (
+              {packs.map((pack: AdminPackRow) => (
                 <tr key={pack.id} className="hover:bg-neutral-50 transition-colors">
                   <td className="px-5 py-3 text-neutral-800 font-medium max-w-[280px] truncate">
                     {pack.title}

@@ -1,8 +1,14 @@
-import type { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getUserPlan } from "@/lib/getUserPlan";
 import { getPlanConfig, type PlanConfig, type PlanTier } from "@/lib/plans";
 import { getCurrentUsagePeriod } from "@/lib/usagePeriod";
+
+type TransactionClient = Parameters<typeof prisma.$transaction>[0] extends (
+  tx: infer T,
+) => unknown
+  ? T
+  : never;
+type PrismaClientLike = typeof prisma | TransactionClient;
 
 export type PlanAction = "create_pack" | "regenerate" | "repurpose";
 export type PlanLimitCode =
@@ -177,7 +183,7 @@ export const assertCanGeneratePack = assertCanCreatePack;
  */
 export async function incrementPackUsage(
   userId: string,
-  tx: PrismaClient | Prisma.TransactionClient = prisma,
+  tx: PrismaClientLike = prisma,
 ): Promise<void> {
   const { month, year } = getCurrentUsagePeriod();
   await tx.usage.upsert({

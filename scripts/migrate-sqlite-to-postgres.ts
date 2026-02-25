@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 const BATCH_SIZE = 500;
 
@@ -133,56 +134,71 @@ async function main() {
     await copyInBatches(
       "User",
       (skip, take) => source.user.findMany({ skip, take, orderBy: { id: "asc" } }),
-      (rows) => target.user.createMany({ data: rows as any[] }),
+      (rows) => target.user.createMany({ data: rows as Prisma.UserCreateManyInput[] }),
     );
 
     await copyInBatches(
       "AuthorityPack",
       (skip, take) => source.authorityPack.findMany({ skip, take, orderBy: { id: "asc" } }),
-      (rows) => target.authorityPack.createMany({ data: rows as any[] }),
+      (rows) =>
+        target.authorityPack.createMany({
+          data: rows as Prisma.AuthorityPackCreateManyInput[],
+        }),
     );
 
     await copyInBatches(
       "AuthorityPackRepurpose",
       (skip, take) =>
         source.authorityPackRepurpose.findMany({ skip, take, orderBy: { id: "asc" } }),
-      (rows) => target.authorityPackRepurpose.createMany({ data: rows as any[] }),
+      (rows) =>
+        target.authorityPackRepurpose.createMany({
+          data: rows as Prisma.AuthorityPackRepurposeCreateManyInput[],
+        }),
     );
 
     await copyInBatches(
       "SupportTicket",
       (skip, take) => source.supportTicket.findMany({ skip, take, orderBy: { id: "asc" } }),
-      (rows) => target.supportTicket.createMany({ data: rows as any[] }),
+      (rows) =>
+        target.supportTicket.createMany({
+          data: rows as Prisma.SupportTicketCreateManyInput[],
+        }),
     );
 
     await copyInBatches(
       "Usage",
       (skip, take) => source.usage.findMany({ skip, take, orderBy: { id: "asc" } }),
-      (rows) => target.usage.createMany({ data: rows as any[] }),
+      (rows) => target.usage.createMany({ data: rows as Prisma.UsageCreateManyInput[] }),
     );
 
     await copyInBatches(
       "Subscription",
       (skip, take) => source.subscription.findMany({ skip, take, orderBy: { id: "asc" } }),
-      (rows) => target.subscription.createMany({ data: rows as any[] }),
+      (rows) =>
+        target.subscription.createMany({
+          data: rows as Prisma.SubscriptionCreateManyInput[],
+        }),
     );
 
     await copyInBatches(
       "Account",
       (skip, take) => source.account.findMany({ skip, take, orderBy: { id: "asc" } }),
-      (rows) => target.account.createMany({ data: rows as any[] }),
+      (rows) => target.account.createMany({ data: rows as Prisma.AccountCreateManyInput[] }),
     );
 
     await copyInBatches(
       "Session",
       (skip, take) => source.session.findMany({ skip, take, orderBy: { id: "asc" } }),
-      (rows) => target.session.createMany({ data: rows as any[] }),
+      (rows) => target.session.createMany({ data: rows as Prisma.SessionCreateManyInput[] }),
     );
 
     await copyInBatches(
       "VerificationToken",
       (skip, take) => source.verificationToken.findMany({ skip, take, orderBy: { token: "asc" } }),
-      (rows) => target.verificationToken.createMany({ data: rows as any[] }),
+      (rows) =>
+        target.verificationToken.createMany({
+          data: rows as Prisma.VerificationTokenCreateManyInput[],
+        }),
     );
 
     const targetCountsAfter = await getCounts(target);

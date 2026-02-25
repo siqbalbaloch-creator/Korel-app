@@ -23,6 +23,12 @@ const commonTopics = [
 ];
 
 type TicketStatus = "open" | "in_progress" | "resolved";
+type SupportTicketRow = {
+  id: string;
+  subject: string;
+  status: string;
+  createdAt: Date;
+};
 
 const STATUS_LABELS: Record<TicketStatus, string> = {
   open: "Open",
@@ -202,7 +208,7 @@ export default async function SupportPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F3F4F6]">
-                  {tickets.map((ticket) => {
+                  {tickets.map((ticket: SupportTicketRow) => {
                     const st = ticket.status as TicketStatus;
                     return (
                       <tr key={ticket.id} className="hover:bg-[#F9FAFB] transition-colors">

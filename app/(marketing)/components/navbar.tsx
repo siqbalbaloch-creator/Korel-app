@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Radio } from "lucide-react";
 import { logMarketingEvent } from "@/lib/marketingEvents";
@@ -138,7 +139,7 @@ export function Navbar() {
             >
               Docs
             </a>
-            <a
+            <Link
               href="/case-studies"
               style={{
                 color: "#64748B",
@@ -151,7 +152,7 @@ export function Navbar() {
               onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
             >
               Case Studies
-            </a>
+            </Link>
 
             {!isAuthed && (
               <a

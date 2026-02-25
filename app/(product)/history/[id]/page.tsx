@@ -1,5 +1,4 @@
 import { notFound, redirect } from "next/navigation";
-import type { Prisma } from "@prisma/client";
 import {
   RefreshCw,
   Copy as CopyIcon,
@@ -25,12 +24,16 @@ import {
   sectionAlignsWithTopics,
 } from "@/lib/insightGuard";
 import type { StrategicAuthorityMap } from "@/ai/prompts";
+import type { Prisma } from "@prisma/client";
 
 type CoreThesis = {
   primaryThesis: string;
   supportingThemes: string[];
   targetPersona: string;
 };
+
+type JsonValue = Prisma.JsonValue;
+type JsonObject = Prisma.JsonObject;
 
 type StrategicHooks = {
   linkedin: string[];
@@ -141,7 +144,7 @@ const toStringArray = (value: unknown) =>
 const toNonEmptyStrings = (value: unknown) =>
   toStringArray(value).map((item) => item.trim()).filter(Boolean);
 
-const parseCoreThesis = (value: Prisma.JsonValue | null): CoreThesis => {
+const parseCoreThesis = (value: JsonValue | null): CoreThesis => {
   if (!isRecord(value)) {
     return { primaryThesis: "", supportingThemes: [], targetPersona: "" };
   }
@@ -152,7 +155,7 @@ const parseCoreThesis = (value: Prisma.JsonValue | null): CoreThesis => {
   };
 };
 
-const parseStrategicHooks = (value: Prisma.JsonValue | null): StrategicHooks => {
+const parseStrategicHooks = (value: JsonValue | null): StrategicHooks => {
   if (!isRecord(value)) {
     return { linkedin: [], twitter: [], contrarian: [] };
   }
@@ -164,7 +167,7 @@ const parseStrategicHooks = (value: Prisma.JsonValue | null): StrategicHooks => 
 };
 
 const parseHighLeveragePosts = (
-  value: Prisma.JsonValue | null,
+  value: JsonValue | null,
 ): HighLeveragePosts => {
   if (!isRecord(value)) {
     return { linkedinPosts: [], twitterThread: [], newsletterSummary: "" };
@@ -177,7 +180,7 @@ const parseHighLeveragePosts = (
 };
 
 const parseInsightBreakdown = (
-  value: Prisma.JsonValue | null,
+  value: JsonValue | null,
 ): InsightBreakdown => {
   if (!isRecord(value)) {
     return { strongClaims: [], dataBackedAngles: [], frameworks: [] };
@@ -191,7 +194,7 @@ const parseInsightBreakdown = (
 
 
 const parseExecutiveSummary = (
-  value: Prisma.JsonValue | null,
+  value: JsonValue | null,
 ): ExecutiveSummary => {
   if (!isRecord(value)) {
     return { headline: "", positioningSentence: "", keyInsights: [] };
@@ -207,7 +210,7 @@ const toNumber = (value: unknown): number =>
   typeof value === "number" && Number.isFinite(value) ? value : 0;
 
 const parseMessagingStrength = (
-  value: Prisma.JsonValue | null,
+  value: JsonValue | null,
 ): MessagingStrength | null => {
   if (!isRecord(value)) {
     return null;
@@ -227,7 +230,7 @@ const parseMessagingStrength = (
 };
 
 const parseAuthorityConsistency = (
-  value: Prisma.JsonValue | null,
+  value: JsonValue | null,
 ): AuthorityConsistency | null => {
   if (!isRecord(value)) {
     return null;
@@ -249,7 +252,7 @@ const parseAuthorityConsistency = (
 };
 
 const parseStrategicMap = (
-  value: Prisma.JsonValue | null,
+  value: JsonValue | null,
 ): AuthorityMapView | null => {
   if (!isRecord(value)) {
     return null;
@@ -268,7 +271,7 @@ const parseStrategicMap = (
 
   const strategicClaims = Array.isArray(value.strategicClaims)
     ? value.strategicClaims
-        .filter((c): c is Prisma.JsonObject => c !== null && typeof c === "object" && !Array.isArray(c))
+        .filter((c): c is JsonObject => c !== null && typeof c === "object" && !Array.isArray(c))
         .map((claim) => ({
           id: toString(claim.id),
           claim: toString(claim.claim),
@@ -284,7 +287,7 @@ const parseStrategicMap = (
     : null;
   const categories = hookMatrixRecord && Array.isArray(hookMatrixRecord.categories)
     ? hookMatrixRecord.categories
-        .filter((c): c is Prisma.JsonObject => c !== null && typeof c === "object" && !Array.isArray(c))
+        .filter((c): c is JsonObject => c !== null && typeof c === "object" && !Array.isArray(c))
         .map((cat) => ({
           category: toString(cat.category),
           hooks: toNonEmptyStrings(cat.hooks),

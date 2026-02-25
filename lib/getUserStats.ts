@@ -9,6 +9,12 @@ export type UserStats = {
   lastActivity: string | null;
 };
 
+type PackRow = {
+  status: string;
+  published: boolean;
+  createdAt: Date;
+};
+
 export async function getUserStats(userId: string): Promise<UserStats> {
   const { month, year } = getCurrentUsagePeriod();
 
@@ -24,8 +30,8 @@ export async function getUserStats(userId: string): Promise<UserStats> {
   ]);
 
   const totalPacks = packs.length;
-  const drafts = packs.filter((p) => !p.published && p.status === "draft").length;
-  const published = packs.filter((p) => p.published).length;
+  const drafts = packs.filter((p: PackRow) => !p.published && p.status === "draft").length;
+  const published = packs.filter((p: PackRow) => p.published).length;
   const monthlyCount = usage?.packsUsed ?? 0;
   const lastActivity = packs[0]?.createdAt?.toISOString() ?? null;
 

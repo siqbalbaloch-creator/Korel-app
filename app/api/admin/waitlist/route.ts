@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
-import { WaitlistPlan, WaitlistStatus } from "@prisma/client";
+type WaitlistPlan = "STARTER" | "PROFESSIONAL" | "ENTERPRISE";
+type WaitlistStatus = "ACTIVE" | "CONTACTED" | "CONVERTED" | "REMOVED";
 
 const VALID_PLANS = new Set<WaitlistPlan>([
-  WaitlistPlan.STARTER,
-  WaitlistPlan.PROFESSIONAL,
-  WaitlistPlan.ENTERPRISE,
+  "STARTER",
+  "PROFESSIONAL",
+  "ENTERPRISE",
 ]);
 
 const VALID_STATUSES = new Set<WaitlistStatus>([
-  WaitlistStatus.ACTIVE,
-  WaitlistStatus.CONTACTED,
-  WaitlistStatus.CONVERTED,
-  WaitlistStatus.REMOVED,
+  "ACTIVE",
+  "CONTACTED",
+  "CONVERTED",
+  "REMOVED",
 ]);
 
 export async function GET(req: NextRequest) {

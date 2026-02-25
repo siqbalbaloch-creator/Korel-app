@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripeServer";
 import { prisma } from "@/lib/prisma";
-import type { Plan } from "@prisma/client";
 import type Stripe from "stripe";
 
 export const runtime = "nodejs";
 
 const isDev = process.env.NODE_ENV !== "production";
+
+type Plan = "FREE" | "PRO" | "ENTERPRISE";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

@@ -4,7 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import { getServerAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserPlan } from "@/lib/getUserPlan";
-import { PLAN_CONFIGS } from "@/lib/plans";
+import { getPlanConfig } from "@/lib/plans";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
 import { AuthorityProfileForm } from "./AuthorityProfileForm";
@@ -31,11 +31,11 @@ export default async function SettingsPage() {
 
   const isOAuth = oauthAccounts.length > 0;
   const hasPassword = !!user.password;
-  const oauthProviders = oauthAccounts.map((a) =>
+  const oauthProviders = oauthAccounts.map((a: { provider: string }) =>
     a.provider.charAt(0).toUpperCase() + a.provider.slice(1),
   );
 
-  const planConfig = PLAN_CONFIGS[planInfo.plan];
+  const planConfig = getPlanConfig(planInfo.plan);
   const isAdmin = user.role === "admin";
 
   return (
@@ -189,4 +189,3 @@ export default async function SettingsPage() {
     </div>
   );
 }
-

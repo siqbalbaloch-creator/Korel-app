@@ -10,6 +10,13 @@ import DashboardClient from "./dashboard-client";
 import PacksList from "./packs-list";
 
 type QualityTrendPack = { qualityScore?: number | null };
+type RadarIssue = {
+  id: string | number;
+  title: string;
+  severity: string;
+  evidence: { affectedPacks: number };
+  recommendation: string;
+};
 
 function motivationalMessage(totalPacks: number): string {
   if (totalPacks === 0) return "Welcome. Generate your first Authority Pack to get started.";
@@ -181,7 +188,7 @@ export default async function DashboardPage({
 
   const radar = radarResult.radar;
   const radarAnalyzed = radarResult.analyzed;
-  const radarIssues = radar.issues.slice(0, 3);
+  const radarIssues: RadarIssue[] = radar.issues.slice(0, 3);
 
   if (stats.totalPacks === 0) {
     return (

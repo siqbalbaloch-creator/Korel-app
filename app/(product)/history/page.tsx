@@ -1,9 +1,12 @@
-import type { Prisma } from "@prisma/client";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 import HistoryClient from "./history-client";
+import type { Prisma } from "@prisma/client";
+
+type JsonValue = Prisma.JsonValue;
+type JsonObject = Prisma.JsonObject;
 
 type PackRecord = {
   id: string;
@@ -12,12 +15,12 @@ type PackRecord = {
   originalInput: string;
   status: string;
   regenerationCount: number;
-  coreThesis: Prisma.JsonValue | null;
-  strategicHooks: Prisma.JsonValue | null;
-  highLeveragePosts: Prisma.JsonValue | null;
-  insightBreakdown: Prisma.JsonValue | null;
-  repurposingMatrix: Prisma.JsonValue | null;
-  executiveSummary: Prisma.JsonValue | null;
+  coreThesis: JsonValue | null;
+  strategicHooks: JsonValue | null;
+  highLeveragePosts: JsonValue | null;
+  insightBreakdown: JsonValue | null;
+  repurposingMatrix: JsonValue | null;
+  executiveSummary: JsonValue | null;
 };
 
 const truncateText = (value: string, maxLength = 96) => {
@@ -44,9 +47,7 @@ const extractUrl = (value: string) => {
   return match[0].replace(/[),.]+$/, "");
 };
 
-const isRecord = (
-  value: Prisma.JsonValue | null,
-): value is Prisma.JsonObject =>
+const isRecord = (value: JsonValue | null): value is JsonObject =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const toString = (value: unknown) => (typeof value === "string" ? value : "");

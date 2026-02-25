@@ -15,6 +15,18 @@ export type AngleBreakdownRow = {
   avgQuality: number;
 };
 
+type InputTypeStatRow = {
+  inputType: string | null;
+  _count: { id: number };
+  _avg: { qualityScore: number | null };
+};
+
+type AngleStatRow = {
+  angle: string | null;
+  _count: { id: number };
+  _avg: { qualityScore: number | null };
+};
+
 export type AdminAnalytics = {
   totalUsers: number;
   usersLast7Days: number;
@@ -144,36 +156,36 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
   ]);
 
   const messagingTotals = messagingStrengthRows
-    .map((row) => {
+    .map((row: { messagingStrength: unknown }) => {
       const ms = row.messagingStrength as Record<string, unknown> | null;
       return ms && typeof ms.total === "number" ? ms.total : null;
     })
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    .filter((value: number | null): value is number => typeof value === "number" && Number.isFinite(value));
 
   const avgMessagingStrength =
     messagingTotals.length > 0
-      ? Math.round((messagingTotals.reduce((sum, v) => sum + v, 0) / messagingTotals.length) * 10) / 10
+      ? Math.round((messagingTotals.reduce((sum: number, v: number) => sum + v, 0) / messagingTotals.length) * 10) / 10
       : 0;
 
   const consistencyTotals = authorityConsistencyRows
-    .map((row) => {
+    .map((row: { authorityConsistency: unknown }) => {
       const cs = row.authorityConsistency as Record<string, unknown> | null;
       return cs && typeof cs.total === "number" ? cs.total : null;
     })
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    .filter((value: number | null): value is number => typeof value === "number" && Number.isFinite(value));
 
   const avgAuthorityConsistency =
     consistencyTotals.length > 0
-      ? Math.round((consistencyTotals.reduce((sum, v) => sum + v, 0) / consistencyTotals.length) * 10) / 10
+      ? Math.round((consistencyTotals.reduce((sum: number, v: number) => sum + v, 0) / consistencyTotals.length) * 10) / 10
       : 0;
 
-  const inputTypeBreakdown: InputTypeBreakdownRow[] = inputTypeStatsRaw.map((row) => ({
+  const inputTypeBreakdown: InputTypeBreakdownRow[] = inputTypeStatsRaw.map((row: InputTypeStatRow) => ({
     type: row.inputType ?? "INTERVIEW",
     count: row._count.id,
     avgQuality: Math.round((row._avg.qualityScore ?? 0) * 10) / 10,
   }));
 
-  const angleBreakdown: AngleBreakdownRow[] = angleStatsRaw.map((row) => ({
+  const angleBreakdown: AngleBreakdownRow[] = angleStatsRaw.map((row: AngleStatRow) => ({
     angle: row.angle ?? "THOUGHT_LEADERSHIP",
     count: row._count.id,
     avgQuality: Math.round((row._avg.qualityScore ?? 0) * 10) / 10,
@@ -181,8 +193,8 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 
   const days = lastNDays(7);
 
-  const userBuckets = bucketByDay(recentUsers.map((u) => u.createdAt));
-  const packBuckets = bucketByDay(recentPacks.map((p) => p.createdAt));
+  const userBuckets = bucketByDay(recentUsers.map((u: { createdAt: Date }) => u.createdAt));
+  const packBuckets = bucketByDay(recentPacks.map((p: { createdAt: Date }) => p.createdAt));
 
   const dailyUserSignups: DailyBucket[] = days.map((date) => ({
     date,

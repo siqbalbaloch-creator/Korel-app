@@ -19,6 +19,12 @@ export type MarketingAnalytics = {
   topUtm: UtmRow[];
 };
 
+type UtmGroupRow = {
+  utmSource: string | null;
+  utmCampaign: string | null;
+  _count: { id: number };
+};
+
 export async function getMarketingAnalytics(): Promise<MarketingAnalytics> {
   const now = new Date();
   const ago7 = new Date(now);
@@ -87,7 +93,7 @@ export async function getMarketingAnalytics(): Promise<MarketingAnalytics> {
     intentOpens30d,
     intentSubmits7d,
     intentSubmits30d,
-    topUtm: utmRaw.map((row) => ({
+    topUtm: utmRaw.map((row: UtmGroupRow) => ({
       source: row.utmSource,
       campaign: row.utmCampaign,
       count: row._count.id,

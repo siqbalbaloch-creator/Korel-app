@@ -3,20 +3,22 @@ import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { logger } from "@/lib/logger";
-import { WaitlistStatus, WaitlistInterestQuality } from "@prisma/client";
+
+type WaitlistStatus = "ACTIVE" | "CONTACTED" | "CONVERTED" | "REMOVED";
+type WaitlistInterestQuality = "UNREVIEWED" | "LOW" | "MEDIUM" | "HIGH";
 
 const VALID_STATUSES = new Set<WaitlistStatus>([
-  WaitlistStatus.ACTIVE,
-  WaitlistStatus.CONTACTED,
-  WaitlistStatus.CONVERTED,
-  WaitlistStatus.REMOVED,
+  "ACTIVE",
+  "CONTACTED",
+  "CONVERTED",
+  "REMOVED",
 ]);
 
 const VALID_QUALITIES = new Set<WaitlistInterestQuality>([
-  WaitlistInterestQuality.UNREVIEWED,
-  WaitlistInterestQuality.LOW,
-  WaitlistInterestQuality.MEDIUM,
-  WaitlistInterestQuality.HIGH,
+  "UNREVIEWED",
+  "LOW",
+  "MEDIUM",
+  "HIGH",
 ]);
 
 export async function PATCH(

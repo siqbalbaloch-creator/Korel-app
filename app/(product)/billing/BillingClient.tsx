@@ -56,7 +56,7 @@ export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) 
       });
       const data = (await res.json()) as { url?: string; error?: string };
       if (data.url) {
-        window.location.href = data.url;
+        window.location.assign(data.url);
       } else {
         alert(data.error ?? "Something went wrong.");
         setLoadingPlan(null);
@@ -73,7 +73,7 @@ export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) 
       const res = await fetch("/api/stripe/portal", { method: "POST" });
       const data = (await res.json()) as { url?: string; error?: string };
       if (data.url) {
-        window.location.href = data.url;
+        window.location.assign(data.url);
       } else {
         alert(data.error ?? "Could not open billing portal.");
         setPortalLoading(false);

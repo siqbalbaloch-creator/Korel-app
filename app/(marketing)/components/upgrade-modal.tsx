@@ -65,7 +65,7 @@ export function UpgradeModal() {
               lineHeight: '1.2'
             }}
           >
-            You've used your 3 free packs
+            You&apos;ve used your 3 free packs
           </h3>
 
           {/* Description */}

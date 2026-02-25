@@ -1,16 +1,54 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { prisma } from "@/lib/prisma";
-import { WaitlistPlan, WaitlistStatus, WaitlistSource, WaitlistInterestQuality } from "@prisma/client";
 import { WaitlistStatusSelect } from "./WaitlistStatusSelect";
 import { WaitlistQualitySelect } from "./WaitlistQualitySelect";
 
 export const dynamic = "force-dynamic";
 
+const WAITLIST_PLANS = ["STARTER", "PROFESSIONAL", "ENTERPRISE"] as const;
+type WaitlistPlan = (typeof WAITLIST_PLANS)[number];
+
+const WAITLIST_STATUSES = ["ACTIVE", "CONTACTED", "CONVERTED", "REMOVED"] as const;
+type WaitlistStatus = (typeof WAITLIST_STATUSES)[number];
+
+const WAITLIST_SOURCES = ["PRICING", "NAVBAR", "UPGRADE", "UNKNOWN"] as const;
+type WaitlistSource = (typeof WAITLIST_SOURCES)[number];
+
+const WAITLIST_QUALITIES = ["UNREVIEWED", "LOW", "MEDIUM", "HIGH"] as const;
+type WaitlistInterestQuality = (typeof WAITLIST_QUALITIES)[number];
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PlanFilter = WaitlistPlan | "ALL";
 type StatusFilter = WaitlistStatus | "ALL";
+
+type WaitlistEntryRow = {
+  id: string;
+  email: string;
+  fullName: string | null;
+  plan: WaitlistPlan;
+  status: WaitlistStatus;
+  interestQuality: WaitlistInterestQuality;
+  lastSubmittedAt: Date;
+  submitCount: number;
+};
+
+type WaitlistPlanCountRow = {
+  plan: WaitlistPlan;
+  _count?: { _all?: number };
+};
+
+type WaitlistSourceCountRow = {
+  source: WaitlistSource;
+  _count?: { _all?: number };
+};
+
+const isWaitlistPlan = (value: string): value is WaitlistPlan =>
+  WAITLIST_PLANS.includes(value as WaitlistPlan);
+
+const isWaitlistStatus = (value: string): value is WaitlistStatus =>
+  WAITLIST_STATUSES.includes(value as WaitlistStatus);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -90,18 +128,18 @@ export default async function AdminWaitlistPage({
   const page = Math.max(1, parseInt(sp.page ?? "1", 10));
 
   const activePlan: PlanFilter =
-    planParam && planParam !== "ALL" && Object.values(WaitlistPlan).includes(planParam as WaitlistPlan)
-      ? (planParam as WaitlistPlan)
+    planParam && planParam !== "ALL" && isWaitlistPlan(planParam)
+      ? planParam
       : "ALL";
 
   const activeStatus: StatusFilter =
-    statusParam && statusParam !== "ALL" && Object.values(WaitlistStatus).includes(statusParam as WaitlistStatus)
-      ? (statusParam as WaitlistStatus)
+    statusParam && statusParam !== "ALL" && isWaitlistStatus(statusParam)
+      ? statusParam
       : "ALL";
 
   const where = {
-    ...(activePlan !== "ALL" ? { plan: activePlan as WaitlistPlan } : {}),
-    ...(activeStatus !== "ALL" ? { status: activeStatus as WaitlistStatus } : {}),
+    ...(activePlan !== "ALL" ? { plan: activePlan } : {}),
+    ...(activeStatus !== "ALL" ? { status: activeStatus } : {}),
     ...(q
       ? {
           OR: [
@@ -117,7 +155,7 @@ export default async function AdminWaitlistPage({
   const thirtyDaysAgo = startOfDayUTC(30);
 
   // Parallel fetches
-  const [entries, total, totalActive, byPlanRaw, last7Days, bySourceRaw, activeLast14d, activeOlderThan30d] =
+  const [entriesRaw, total, totalActive, byPlanRaw, last7Days, bySourceRaw, activeLast14d, activeOlderThan30d] =
     await Promise.all([
       prisma.waitlistEntry.findMany({
         where,
@@ -126,10 +164,10 @@ export default async function AdminWaitlistPage({
         take: PAGE_SIZE,
       }),
       prisma.waitlistEntry.count({ where }),
-      prisma.waitlistEntry.count({ where: { status: WaitlistStatus.ACTIVE } }),
+      prisma.waitlistEntry.count({ where: { status: "ACTIVE" } }),
       prisma.waitlistEntry.groupBy({
         by: ["plan"],
-        where: { status: WaitlistStatus.ACTIVE },
+        where: { status: "ACTIVE" },
         _count: { _all: true },
       }),
       prisma.waitlistEntry.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
@@ -138,12 +176,15 @@ export default async function AdminWaitlistPage({
         _count: { _all: true },
       }),
       prisma.waitlistEntry.count({
-        where: { status: WaitlistStatus.ACTIVE, createdAt: { gte: fourteenDaysAgo } },
+        where: { status: "ACTIVE", createdAt: { gte: fourteenDaysAgo } },
       }),
       prisma.waitlistEntry.count({
-        where: { status: WaitlistStatus.ACTIVE, createdAt: { lt: thirtyDaysAgo } },
+        where: { status: "ACTIVE", createdAt: { lt: thirtyDaysAgo } },
       }),
     ]);
+  const entries: WaitlistEntryRow[] = entriesRaw;
+  const byPlanRows: WaitlistPlanCountRow[] = byPlanRaw;
+  const bySourceRows: WaitlistSourceCountRow[] = bySourceRaw;
 
   // Build plan map
   const byPlan: Record<WaitlistPlan, number> = {
@@ -151,12 +192,12 @@ export default async function AdminWaitlistPage({
     PROFESSIONAL: 0,
     ENTERPRISE: 0,
   };
-  for (const row of byPlanRaw) {
+  for (const row of byPlanRows) {
     byPlan[row.plan] = row._count?._all ?? 0;
   }
 
   // Sort sources by count descending (in JS since groupBy orderBy on _all is unsupported in SQLite adapter)
-  bySourceRaw.sort((a, b) => (b._count?._all ?? 0) - (a._count?._all ?? 0));
+  bySourceRows.sort((a, b) => (b._count?._all ?? 0) - (a._count?._all ?? 0));
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -222,9 +263,9 @@ export default async function AdminWaitlistPage({
       )}
 
       {/* Sources row */}
-      {bySourceRaw.length > 0 && (
+      {bySourceRows.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-8">
-          {bySourceRaw.map((row) => (
+          {bySourceRows.map((row) => (
             <span
               key={row.source}
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-neutral-100 text-neutral-600"

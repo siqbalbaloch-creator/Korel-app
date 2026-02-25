@@ -4,19 +4,20 @@ import { rateLimit } from "@/lib/rateLimit";
 import { apiError } from "@/lib/apiError";
 import { logger } from "@/lib/logger";
 import { getServerAuthSession } from "@/lib/auth";
-import { WaitlistPlan, WaitlistSource } from "@prisma/client";
+type WaitlistPlan = "STARTER" | "PROFESSIONAL" | "ENTERPRISE";
+type WaitlistSource = "PRICING" | "NAVBAR" | "UPGRADE" | "UNKNOWN";
 
 const VALID_PLANS = new Set<WaitlistPlan>([
-  WaitlistPlan.STARTER,
-  WaitlistPlan.PROFESSIONAL,
-  WaitlistPlan.ENTERPRISE,
+  "STARTER",
+  "PROFESSIONAL",
+  "ENTERPRISE",
 ]);
 
 const VALID_SOURCES = new Set<WaitlistSource>([
-  WaitlistSource.PRICING,
-  WaitlistSource.NAVBAR,
-  WaitlistSource.UPGRADE,
-  WaitlistSource.UNKNOWN,
+  "PRICING",
+  "NAVBAR",
+  "UPGRADE",
+  "UNKNOWN",
 ]);
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
   const source: WaitlistSource =
     typeof rawSource === "string" && VALID_SOURCES.has(rawSource as WaitlistSource)
       ? (rawSource as WaitlistSource)
-      : WaitlistSource.PRICING;
+      : "PRICING";
 
   // Sanitize fullName
   const fullName =

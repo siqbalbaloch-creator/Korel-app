@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
-import { WaitlistPlan, WaitlistSource, WaitlistStatus } from "@prisma/client";
+type WaitlistPlan = "STARTER" | "PROFESSIONAL" | "ENTERPRISE";
+type WaitlistSource = "PRICING" | "NAVBAR" | "UPGRADE" | "UNKNOWN";
+type WaitlistStatus = "ACTIVE" | "CONTACTED" | "CONVERTED" | "REMOVED";
+type PlanCountRow = { plan: WaitlistPlan; _count: { _all: number } };
+type SourceCountRow = { source: WaitlistSource; _count: { _all: number } };
+type DailyRow = { createdAt: Date };
 
 function startOfDayUTC(daysAgo: number): Date {
   const d = new Date();
@@ -34,12 +39,12 @@ export async function GET() {
     dailyRaw,
   ] = await Promise.all([
     // Total active entries
-    prisma.waitlistEntry.count({ where: { status: WaitlistStatus.ACTIVE } }),
+    prisma.waitlistEntry.count({ where: { status: "ACTIVE" } }),
 
     // Active entries grouped by plan
     prisma.waitlistEntry.groupBy({
       by: ["plan"],
-      where: { status: WaitlistStatus.ACTIVE },
+      where: { status: "ACTIVE" },
       _count: { _all: true },
     }),
 
@@ -62,6 +67,9 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     }),
   ]);
+  const byPlanRows: PlanCountRow[] = byPlanRaw;
+  const bySourceRows: SourceCountRow[] = bySourceRaw;
+  const dailyRows: DailyRow[] = dailyRaw;
 
   // Build byPlan map
   const byPlan: Record<WaitlistPlan, number> = {
@@ -69,7 +77,7 @@ export async function GET() {
     PROFESSIONAL: 0,
     ENTERPRISE: 0,
   };
-  for (const row of byPlanRaw) {
+  for (const row of byPlanRows) {
     byPlan[row.plan] = row._count._all;
   }
 
@@ -80,7 +88,7 @@ export async function GET() {
     UPGRADE: 0,
     UNKNOWN: 0,
   };
-  for (const row of bySourceRaw) {
+  for (const row of bySourceRows) {
     topSources[row.source] = row._count._all;
   }
 
@@ -90,7 +98,7 @@ export async function GET() {
     const d = startOfDayUTC(i);
     buckets[toDateKey(d)] = 0;
   }
-  for (const row of dailyRaw) {
+  for (const row of dailyRows) {
     const key = toDateKey(row.createdAt);
     if (key in buckets) buckets[key]++;
   }

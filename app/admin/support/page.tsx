@@ -4,6 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { TicketActions } from "./TicketActions";
 
 type Status = "open" | "in_progress" | "resolved";
+type StatusCount = { status: string; _count: number };
+type SupportTicketRow = {
+  id: string;
+  subject: string;
+  message: string;
+  status: string;
+  createdAt: Date;
+  user: { email: string | null };
+};
 
 const STATUS_LABELS: Record<Status, string> = {
   open: "Open",
@@ -59,9 +68,12 @@ export default async function AdminSupportPage({
   ]);
 
   const countByStatus = Object.fromEntries(
-    counts.map((c) => [c.status, c._count]),
+    counts.map((c: StatusCount) => [c.status, c._count]),
   );
-  const totalCount = counts.reduce((sum, c) => sum + c._count, 0);
+  const totalCount = counts.reduce(
+    (sum: number, c: StatusCount) => sum + c._count,
+    0,
+  );
 
   const displayedCount = validFilter
     ? (countByStatus[validFilter] ?? 0)
@@ -144,7 +156,7 @@ export default async function AdminSupportPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {tickets.map((ticket) => {
+              {tickets.map((ticket: SupportTicketRow) => {
                 const st = ticket.status as Status;
                 return (
                   <tr

@@ -3,6 +3,22 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+type PricingPlan = string;
+
+type PricingInterestRow = {
+  id: string;
+  name: string;
+  email: string;
+  plan: PricingPlan;
+  createdAt: Date;
+};
+
+type PricingClickRow = {
+  id: string;
+  plan: PricingPlan;
+  createdAt: Date;
+};
+
 function fmt(date: Date) {
   return date.toLocaleDateString("en-US", {
     month: "short",
@@ -16,7 +32,7 @@ function fmt(date: Date) {
 export default async function PricingIntentPage() {
   await requireAdmin();
 
-  const [interests, clicks] = await Promise.all([
+  const [interests, clicks]: [PricingInterestRow[], PricingClickRow[]] = await Promise.all([
     prisma.pricingInterest.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.pricingClick.findMany({ orderBy: { createdAt: "desc" } }),
   ]);

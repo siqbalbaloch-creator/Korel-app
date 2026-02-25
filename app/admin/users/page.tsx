@@ -4,6 +4,16 @@ import { PLAN_CONFIGS, type PlanTier } from "@/lib/plans";
 import { getCurrentUsagePeriod } from "@/lib/usagePeriod";
 import MakeAdminButton from "./MakeAdminButton";
 
+type AdminUserRow = {
+  id: string;
+  email: string | null;
+  role: string;
+  createdAt: Date;
+  _count: { packs: number };
+  subscription: { plan: string | null; status: string | null } | null;
+  usage: { packsUsed: number }[];
+};
+
 const formatDate = (date: Date) =>
   date.toLocaleDateString("en-US", {
     month: "short",
@@ -76,7 +86,7 @@ export default async function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {users.map((user) => {
+              {users.map((user: AdminUserRow) => {
                 const isActive =
                   user.subscription?.status === "active" ||
                   user.subscription?.status === "trialing";

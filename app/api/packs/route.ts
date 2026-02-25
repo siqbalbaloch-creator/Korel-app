@@ -42,6 +42,12 @@ type PackResponse = {
   createdAt: string;
 };
 
+type TransactionClient = Parameters<typeof prisma.$transaction>[0] extends (
+  tx: infer T,
+) => unknown
+  ? T
+  : never;
+
 const serializePack = (pack: {
   id: string;
   title: string;
@@ -55,6 +61,9 @@ const serializePack = (pack: {
 });
 
 const normalizeQuota = (value: number) => (value === Infinity ? null : value);
+
+const isStrategicMap = (value: unknown): value is StrategicAuthorityMap =>
+  typeof value === "object" && value !== null;
 
 const buildPlanLimits = (planInfo: UserPlanInfo) => {
   const config = getPlanConfig(planInfo.plan);
@@ -313,7 +322,7 @@ export async function POST(request: Request) {
     const messagingStrength = calculateMessagingStrength(structuredPack.strategicMap ?? null);
     const recentStrategicMaps = recentSAMs
       .map((row) => row.strategicMap)
-      .filter((sam): sam is StrategicAuthorityMap => Boolean(sam));
+      .filter(isStrategicMap);
     const authorityConsistency = calculateAuthorityConsistency(
       profile,
       structuredPack.strategicMap ?? null,
@@ -357,7 +366,7 @@ export async function POST(request: Request) {
 
     let created;
     try {
-      created = await prisma.$transaction(async (tx) => {
+      created = await prisma.$transaction(async (tx: TransactionClient) => {
         const { month, year } = getCurrentUsagePeriod();
         const usage = await tx.usage.findUnique({
           where: { userId_month_year: { userId, month, year } },

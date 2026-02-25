@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function DocsCTA() {
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -9,9 +11,9 @@ export default function DocsCTA() {
           <p className="text-sm text-neutral-500">
             Start with a transcript or talk and let Korel structure the authority engine.
           </p>
-          <a href="/case-studies" className="text-xs text-neutral-400 hover:text-neutral-600">
+          <Link href="/case-studies" className="text-xs text-neutral-400 hover:text-neutral-600">
             View founder case studies
-          </a>
+          </Link>
         </div>
         <a
           href="/new"

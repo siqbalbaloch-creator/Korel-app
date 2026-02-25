@@ -41,6 +41,9 @@ const toJsonObject = (value: unknown): Record<string, unknown> =>
 const toStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 
+const isStrategicMap = (value: unknown): value is StrategicAuthorityMap =>
+  typeof value === "object" && value !== null;
+
 const buildGuardIndexFromSAM = (sam: StrategicAuthorityMap) => {
   const derivedHooks = deriveHooksFromSAM(sam);
   return buildInsightTopicIndex({
@@ -220,7 +223,7 @@ export async function POST(
         sam,
         recentSAMs
           .map((row) => row.strategicMap)
-          .filter((map): map is StrategicAuthorityMap => Boolean(map)),
+          .filter(isStrategicMap),
       );
 
       if (body.section === "linkedin_variant") {

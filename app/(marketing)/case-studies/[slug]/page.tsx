@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import CaseStudiesShell from "../components/case-studies-shell";
 import { CASE_STUDIES, CASE_STUDY_SLUGS } from "../data";
 
@@ -18,12 +19,12 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
   return (
     <CaseStudiesShell current={study.slug}>
       <section className="space-y-3">
-        <a
+        <Link
           href="/case-studies"
           className="text-xs text-neutral-400 hover:text-neutral-600"
         >
           Back to Case Studies
-        </a>
+        </Link>
         <h1 className="text-2xl font-semibold text-neutral-900">{study.title}</h1>
         <p className="text-sm text-neutral-600 leading-relaxed">{study.summary}</p>
       </section>

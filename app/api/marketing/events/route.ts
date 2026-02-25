@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import { getServerAuthSession } from "@/lib/auth";
+import type { Prisma } from "@prisma/client";
 
 const VALID_EVENT_TYPES = new Set([
   "PAGE_VIEW",
@@ -57,12 +57,12 @@ export async function POST(req: NextRequest) {
   const utmSource = typeof rawUtmSource === "string" ? rawUtmSource.slice(0, 100) : null;
   const utmMedium = typeof rawUtmMedium === "string" ? rawUtmMedium.slice(0, 100) : null;
   const utmCampaign = typeof rawUtmCampaign === "string" ? rawUtmCampaign.slice(0, 100) : null;
-  const meta =
+  const meta: Prisma.InputJsonValue | null =
     rawMeta !== null &&
     rawMeta !== undefined &&
     typeof rawMeta === "object" &&
     !Array.isArray(rawMeta)
-      ? (rawMeta as Prisma.JsonObject)
+      ? (rawMeta as Prisma.InputJsonValue)
       : null;
 
   const session = await getServerAuthSession();
