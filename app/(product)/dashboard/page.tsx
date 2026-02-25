@@ -9,6 +9,8 @@ import { getWeaknessRadarForUser } from "@/lib/weaknessRadar";
 import DashboardClient from "./dashboard-client";
 import PacksList from "./packs-list";
 
+type QualityTrendPack = { qualityScore?: number | null };
+
 function motivationalMessage(totalPacks: number): string {
   if (totalPacks === 0) return "Welcome. Generate your first Authority Pack to get started.";
   if (totalPacks < 3) return "Great start. Keep building your Authority Pack library.";
@@ -126,7 +128,7 @@ export default async function DashboardPage({
     );
   }
 
-  const [stats, planInfo, recentPacks, lowScorePack, qualityTrendPacks, radarResult] = await Promise.all([
+  const [stats, planInfo, recentPacks, lowScorePack, qualityTrendPacksRaw, radarResult] = await Promise.all([
     getUserStats(userId),
     getUserPlan(userId, { role: session.user.role }),
     prisma.authorityPack.findMany({
@@ -146,6 +148,7 @@ export default async function DashboardPage({
     }),
     getWeaknessRadarForUser(userId),
   ]);
+  const qualityTrendPacks: QualityTrendPack[] = qualityTrendPacksRaw;
 
   // Quality trend: avg of last 5 vs previous 5 packs
   const recent5 = qualityTrendPacks.slice(0, 5).map((p) => p.qualityScore ?? 0);
