@@ -15,7 +15,7 @@ export function Hero() {
       style={{
         paddingTop: '120px',
         paddingBottom: '120px',
-        background: 'radial-gradient(ellipse 800px 600px at 50% 20%, rgba(120, 108, 255, 0.12) 0%, transparent 60%), #F6F7FB',
+        background: 'radial-gradient(ellipse 800px 600px at 50% 20%, rgba(120, 108, 255, 0.14) 0%, transparent 60%), #E8E9F2',
         position: 'relative',
       }}
     >

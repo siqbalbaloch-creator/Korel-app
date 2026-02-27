@@ -22,7 +22,12 @@ export const authOptions: NextAuthOptions = {
           where: { id: token.id as string },
           select: { role: true },
         });
-        token.role = dbUser?.role ?? "user";
+        if (!dbUser) {
+          // User no longer exists in DB (e.g. after a DB migration or reset).
+          // Return an empty token so the session is treated as unauthenticated.
+          return {};
+        }
+        token.role = dbUser.role;
       }
       return token;
     },

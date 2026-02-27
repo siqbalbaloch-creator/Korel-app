@@ -37,13 +37,13 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
   },
   PRO: {
     tier: "PRO",
-    name: "Pro",
-    monthlyPackLimit: 50,
+    name: "Starter",
+    monthlyPackLimit: 15,
     maxRegenerationsPerPack: 10,
     maxStoredPacks: Infinity,
     qualityFixAccess: true,
     repurposeAccess: true,
-    priceUsd: 29,
+    priceUsd: 49,
   },
   ENTERPRISE: {
     tier: "ENTERPRISE",

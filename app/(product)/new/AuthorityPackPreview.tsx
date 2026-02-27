@@ -211,7 +211,7 @@ export function AuthorityPackPreview({
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-neutral-900">
-              Assembling your Authority Packâ€¦
+              Assembling your Authority Pack…
             </p>
             <p className="text-xs text-neutral-500">
               Extracting strategic hooks, platform-ready assets, and insight breakdowns from your transcript.

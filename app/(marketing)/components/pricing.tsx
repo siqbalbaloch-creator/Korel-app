@@ -32,7 +32,7 @@ const PLANS: Plan[] = [
     ctaModal: "STARTER",
     variant: "default",
     features: [
-      "5 interview or update uploads per month",
+      "15 interview or update uploads per month",
       "Structured Authority Map (SAM) generation",
       "LinkedIn and X platform-ready assets",
       "Messaging Strength evaluation",
@@ -51,7 +51,7 @@ const PLANS: Plan[] = [
     ctaModal: "PROFESSIONAL",
     variant: "featured",
     features: [
-      "20 interview or update uploads per month",
+      "50 interview or update uploads per month",
       "Unlimited platform-ready assets per upload",
       "Full Strategic Authority Map (SAM)",
       "Messaging Strength + Authority Consistency tracking",

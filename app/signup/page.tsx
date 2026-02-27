@@ -1,16 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 
-export default function SignUpPage() {
+function SignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams?.get("callbackUrl") ?? "/auth/role-redirect";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    if (isGoogleLoading) return;
+    setIsGoogleLoading(true);
+    setError("");
+    await signIn("google", { callbackUrl });
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -50,78 +62,101 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-6">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4"
+    <form
+      onSubmit={handleSubmit}
+      className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4"
+    >
+      <div className="space-y-1">
+        <h1 className="text-xl font-semibold text-neutral-900">Sign Up</h1>
+        <p className="text-sm text-neutral-500">Create your Korel account.</p>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleGoogleSignIn}
+        disabled={isGoogleLoading}
+        className="w-full rounded-md border border-neutral-200 bg-white py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-50 disabled:opacity-60"
       >
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold text-neutral-900">Sign Up</h1>
-          <p className="text-sm text-neutral-500">Create your account.</p>
-        </div>
+        {isGoogleLoading ? "Connecting..." : "Continue with Google"}
+      </button>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-700" htmlFor="email">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
-            required
-          />
-        </div>
+      <div className="flex items-center gap-3 text-xs text-neutral-400">
+        <div className="h-px flex-1 bg-neutral-200" />
+        <span>or</span>
+        <div className="h-px flex-1 bg-neutral-200" />
+      </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-700" htmlFor="password">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
-            required
-          />
-        </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-neutral-700" htmlFor="email">
+          Email
+        </label>
+        <input
+          id="email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
+          required
+        />
+      </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-700" htmlFor="confirm-password">
-            Confirm Password
-          </label>
-          <input
-            id="confirm-password"
-            type="password"
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
-            required
-          />
-        </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-neutral-700" htmlFor="password">
+          Password
+        </label>
+        <input
+          id="password"
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
+          required
+        />
+      </div>
 
-        {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-neutral-700" htmlFor="confirm-password">
+          Confirm Password
+        </label>
+        <input
+          id="confirm-password"
+          type="password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
+          required
+        />
+      </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded-md bg-[#4F46E5] py-2 text-sm font-medium text-white hover:bg-[#4338CA] disabled:opacity-60"
-        >
-          {isSubmitting ? "Creating account..." : "Create account"}
-        </button>
+      {error ? <p className="text-xs text-red-600">{error}</p> : null}
 
-        <p className="text-xs text-neutral-500 text-center">
-          Already have an account?{" "}
-          <Link href="/signin" className="text-[#4F46E5] hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </form>
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="w-full rounded-md bg-[#4F46E5] py-2 text-sm font-medium text-white hover:bg-[#4338CA] disabled:opacity-60"
+      >
+        {isSubmitting ? "Creating account..." : "Create account"}
+      </button>
+
+      <p className="text-xs text-neutral-500 text-center">
+        Already have an account?{" "}
+        <Link href="/signin" className="text-[#4F46E5] hover:underline">
+          Sign in
+        </Link>
+      </p>
+    </form>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-6">
+      <Suspense>
+        <SignUpForm />
+      </Suspense>
     </div>
   );
 }
