@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import CaseStudiesShell from "../components/case-studies-shell";
 import { CASE_STUDIES, CASE_STUDY_SLUGS } from "../data";
+
+const BASE_URL = "https://www.usekorel.com";
 
 type CaseStudyPageProps = {
   params: Promise<{ slug: string }>;
@@ -9,6 +12,30 @@ type CaseStudyPageProps = {
 
 export function generateStaticParams() {
   return CASE_STUDY_SLUGS.map((slug) => ({ slug }));
+}
+
+export async function generateMetadata({ params }: CaseStudyPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const study = CASE_STUDIES.find((item) => item.slug === slug);
+  if (!study) return {};
+
+  const url = `${BASE_URL}/case-studies/${slug}`;
+  return {
+    title: study.title,
+    description: study.summary,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${study.title} | Korel Case Study`,
+      description: study.summary,
+      url,
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${study.title} | Korel Case Study`,
+      description: study.summary,
+    },
+  };
 }
 
 export default async function CaseStudyPage({ params }: CaseStudyPageProps) {

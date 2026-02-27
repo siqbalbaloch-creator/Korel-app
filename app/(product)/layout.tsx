@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 import { Radio } from "lucide-react";
 import { getServerAuthSession } from "@/lib/auth";
 import SidebarNavigation from "./SidebarNavigation";

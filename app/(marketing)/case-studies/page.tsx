@@ -1,5 +1,19 @@
+import type { Metadata } from "next";
 import CaseStudiesShell from "./components/case-studies-shell";
 import { CASE_STUDIES } from "./data";
+
+export const metadata: Metadata = {
+  title: "Case Studies — Real Authority Packs in Action",
+  description:
+    "See how B2B founders use Korel to turn interviews, investor updates, and product launches into structured authority content for LinkedIn, X, and newsletters.",
+  alternates: { canonical: "https://www.usekorel.com/case-studies" },
+  openGraph: {
+    title: "Case Studies — Real Authority Packs in Action | Korel",
+    description:
+      "See how B2B founders use Korel to turn interviews, investor updates, and product launches into structured authority content for LinkedIn, X, and newsletters.",
+    url: "https://www.usekorel.com/case-studies",
+  },
+};
 
 export default function CaseStudiesIndexPage() {
   return (
