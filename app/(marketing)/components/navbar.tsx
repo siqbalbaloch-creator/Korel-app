@@ -50,16 +50,16 @@ export function Navbar() {
     >
       <div
         className="mx-auto flex items-center justify-between"
-        style={{ maxWidth: "1200px", height: "68px" }}
+        style={{ maxWidth: "1320px", height: "68px" }}
       >
         {/* Logo */}
-        <div className="flex items-center" style={{ gap: "10px" }}>
+        <Link href="/" className="flex items-center" style={{ gap: "10px", textDecoration: "none" }}>
           <div
             style={{
               width: "38px",
               height: "38px",
               borderRadius: "10px",
-              background: "linear-gradient(135deg, #6D5EF3 0%, #8B7CFF 100%)",
+              background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -72,7 +72,7 @@ export function Navbar() {
             <h1 style={{ fontSize: "22px", fontWeight: 600, letterSpacing: "0.5px", lineHeight: 1.15, margin: 0 }}>
               <span
                 style={{
-                  background: "linear-gradient(135deg, #6D5EF3 0%, #8B7CFF 100%)",
+                  background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -86,7 +86,7 @@ export function Navbar() {
               Authority Engine
             </span>
           </div>
-        </div>
+        </Link>
 
         {/* Nav links + actions */}
         <div className="flex items-center" style={{ gap: "24px" }}>
@@ -236,7 +236,7 @@ export function Navbar() {
                   justifyContent: "center",
                   background: userImage
                     ? "transparent"
-                    : "linear-gradient(135deg, #6D5EF3 0%, #8B7CFF 100%)",
+                    : "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
                 }}
               >
                 {userImage ? (

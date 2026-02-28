@@ -11,11 +11,9 @@ export function Hero() {
 
   return (
     <section
-      className="relative px-6 overflow-hidden"
+      className="relative px-6 overflow-hidden pt-24 pb-20 lg:pt-[120px] lg:pb-[120px]"
       style={{
-        paddingTop: '120px',
-        paddingBottom: '120px',
-        background: 'radial-gradient(ellipse 800px 600px at 50% 20%, rgba(120, 108, 255, 0.14) 0%, transparent 60%), #E8E9F2',
+        background: 'radial-gradient(ellipse 900px 600px at 55% 30%, rgba(99, 82, 255, 0.22) 0%, transparent 65%), #F9F8FF',
         position: 'relative',
       }}
     >
@@ -23,15 +21,15 @@ export function Hero() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse 800px 600px at 50% 20%, rgba(99, 102, 241, 0.06) 0%, transparent 60%)',
+          background: 'radial-gradient(ellipse 900px 600px at 55% 30%, rgba(79, 70, 229, 0.08) 0%, transparent 65%)',
           zIndex: 0,
         }}
       />
 
       {/* Two-column split layout */}
       <div
-        className="relative mx-auto grid grid-cols-1 lg:grid-cols-2 items-center"
-        style={{ maxWidth: '1100px', zIndex: 1, gap: '64px' }}
+        className="relative mx-auto grid items-center grid-cols-1 lg:grid-cols-[minmax(0,1fr)_480px] gap-10 lg:gap-12"
+        style={{ maxWidth: '1320px', zIndex: 1 }}
       >
         {/* LEFT COLUMN — Copy + CTAs */}
         <div className="flex flex-col">
@@ -60,10 +58,10 @@ export function Hero() {
 
           {/* Headline */}
           <h1
+            className="text-4xl lg:text-5xl"
             style={{
               color: '#1F2937',
               fontWeight: 700,
-              fontSize: '48px',
               lineHeight: '1.1',
               letterSpacing: '-0.5px',
               marginBottom: '20px',
@@ -72,7 +70,7 @@ export function Hero() {
             Paste a Transcript.{' '}
             <span
               style={{
-                background: 'linear-gradient(135deg, #6D5EF3 0%, #8B7CFF 100%)',
+                background: 'linear-gradient(135deg, #4338CA 0%, #7C3AED 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -106,7 +104,7 @@ export function Hero() {
                 router.push('/new');
               }}
               style={{
-                background: 'linear-gradient(135deg, #6D5EF3 0%, #8B7CFF 100%)',
+                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
                 color: '#ffffff',
                 fontWeight: 600,
                 fontSize: '16px',
@@ -116,17 +114,17 @@ export function Hero() {
                 borderRadius: '12px',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 6px 20px rgba(109, 94, 243, 0.2)',
+                boxShadow: '0 6px 24px rgba(79, 70, 229, 0.35)',
                 transition: 'all 0.2s ease',
                 whiteSpace: 'nowrap',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(109, 94, 243, 0.28)';
+                e.currentTarget.style.boxShadow = '0 10px 28px rgba(79, 70, 229, 0.45)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 6px 20px rgba(109, 94, 243, 0.2)';
+                e.currentTarget.style.boxShadow = '0 6px 24px rgba(79, 70, 229, 0.35)';
               }}
             >
               Generate Your Free Pack
@@ -227,7 +225,7 @@ export function Hero() {
               disabled={!inputValue.trim()}
               style={{
                 width: '100%',
-                background: 'linear-gradient(135deg, #6D5EF3 0%, #8B7CFF 100%)',
+                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
                 color: '#ffffff',
                 fontWeight: 600,
                 fontSize: '16px',
@@ -235,21 +233,21 @@ export function Hero() {
                 borderRadius: '12px',
                 border: 'none',
                 cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
-                boxShadow: '0 6px 20px rgba(109, 94, 243, 0.15)',
+                boxShadow: '0 6px 24px rgba(79, 70, 229, 0.35)',
                 transition: 'all 0.2s ease',
                 marginBottom: '14px',
-                opacity: inputValue.trim() ? 1 : 0.6,
+                opacity: inputValue.trim() ? 1 : 0.55,
               }}
               onMouseEnter={(e) => {
                 if (!inputValue.trim()) return;
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(109, 94, 243, 0.25)';
+                e.currentTarget.style.boxShadow = '0 10px 28px rgba(79, 70, 229, 0.45)';
                 e.currentTarget.style.filter = 'brightness(1.05)';
               }}
               onMouseLeave={(e) => {
                 if (!inputValue.trim()) return;
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 6px 20px rgba(109, 94, 243, 0.15)';
+                e.currentTarget.style.boxShadow = '0 6px 24px rgba(79, 70, 229, 0.35)';
                 e.currentTarget.style.filter = 'brightness(1)';
               }}
               onClick={() => {
