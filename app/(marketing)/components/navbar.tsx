@@ -153,6 +153,20 @@ export function Navbar() {
             >
               Case Studies
             </Link>
+            <a
+              href="/blog"
+              style={{
+                color: "#64748B",
+                fontSize: "15px",
+                fontWeight: 500,
+                textDecoration: "none",
+                transition: "color 0.2s ease",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
+            >
+              Insights
+            </a>
 
             {!isAuthed && (
               <a

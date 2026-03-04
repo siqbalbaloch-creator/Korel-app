@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { CASE_STUDY_SLUGS } from "./(marketing)/case-studies/data";
+import { BLOG_SLUGS } from "./blog/data";
 
 const BASE_URL = "https://www.usekorel.com";
 
@@ -29,5 +30,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    {
+      url: `${BASE_URL}/blog`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    ...BLOG_SLUGS.map((slug) => ({
+      url: `${BASE_URL}/blog/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
   ];
 }

@@ -11,6 +11,7 @@ import { WhyNotChatGPT } from "./components/WhyNotChatGPT";
 import { FAQ } from "./components/FAQ";
 import { FinalCTA } from "./components/final-cta";
 import { Footer } from "./components/footer";
+import { BlogPreviewSection } from "./components/blog-preview";
 import { ScrollOnLoad } from "./components/ScrollOnLoad";
 
 export const metadata: Metadata = {
@@ -68,6 +69,7 @@ export default function MarketingPage() {
       <Pricing />
       <WhyNotChatGPT />
       <FAQ />
+      <BlogPreviewSection />
       <FinalCTA />
       <Footer />
     </div>

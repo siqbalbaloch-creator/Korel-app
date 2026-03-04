@@ -38,78 +38,115 @@ export function Footer() {
           </div>
 
           {/* Links */}
-          <nav className="flex flex-wrap justify-center" style={{ gap: '32px' }}>
-            <a 
-              href="#pricing"
-              style={{ 
-                color: '#64748B',
-                fontSize: '15px',
-                fontWeight: 500,
-                textDecoration: 'none',
-                transition: 'color 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
-            >
-              Pricing
-            </a>
-            <a 
-              href="#how-it-works"
-              style={{ 
-                color: '#64748B',
-                fontSize: '15px',
-                fontWeight: 500,
-                textDecoration: 'none',
-                transition: 'color 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
-            >
-              How It Works
-            </a>
-            <a 
-              href="#privacy"
-              style={{ 
-                color: '#64748B',
-                fontSize: '15px',
-                fontWeight: 500,
-                textDecoration: 'none',
-                transition: 'color 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
-            >
-              Privacy
-            </a>
-            <a 
-              href="#terms"
-              style={{ 
-                color: '#64748B',
-                fontSize: '15px',
-                fontWeight: 500,
-                textDecoration: 'none',
-                transition: 'color 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
-            >
-              Terms
-            </a>
-            <a 
-              href="#contact"
-              style={{ 
-                color: '#64748B',
-                fontSize: '15px',
-                fontWeight: 500,
-                textDecoration: 'none',
-                transition: 'color 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
-            >
-              Contact
-            </a>
-          </nav>
+          <div className="flex flex-wrap justify-center items-start" style={{ gap: '48px' }}>
+            <nav className="flex flex-wrap justify-center" style={{ gap: '32px' }}>
+              <a
+                href="#pricing"
+                style={{
+                  color: '#64748B',
+                  fontSize: '15px',
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
+              >
+                Pricing
+              </a>
+              <a
+                href="#how-it-works"
+                style={{
+                  color: '#64748B',
+                  fontSize: '15px',
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
+              >
+                How It Works
+              </a>
+              <a
+                href="#privacy"
+                style={{
+                  color: '#64748B',
+                  fontSize: '15px',
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
+              >
+                Privacy
+              </a>
+              <a
+                href="#terms"
+                style={{
+                  color: '#64748B',
+                  fontSize: '15px',
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
+              >
+                Terms
+              </a>
+              <a
+                href="#contact"
+                style={{
+                  color: '#64748B',
+                  fontSize: '15px',
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
+              >
+                Contact
+              </a>
+            </nav>
+
+            {/* Resources column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <p style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#94A3B8',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                margin: 0,
+              }}>
+                Resources
+              </p>
+              {[
+                { label: 'Blog', href: '/blog' },
+                { label: 'Docs', href: '/docs' },
+                { label: 'Case Studies', href: '/case-studies' },
+              ].map(({ label, href }) => (
+                <a
+                  key={href}
+                  href={href}
+                  style={{
+                    color: '#64748B',
+                    fontSize: '15px',
+                    fontWeight: 500,
+                    textDecoration: 'none',
+                    transition: 'color 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </footer>
