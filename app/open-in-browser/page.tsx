@@ -89,31 +89,39 @@ export default function OpenInBrowserPage() {
             marginBottom: "32px",
           }}
         >
-          Google login cannot run inside the LinkedIn or social media
-          app browser. Please open Korel in your device browser to
-          continue.
+          LinkedIn opens links inside a restricted in-app browser that
+          blocks Google login. Please open Korel in your device browser
+          to continue.
         </p>
 
         {/* Primary CTA */}
-        <a
-          href={SITE_URL}
-          rel="noopener noreferrer"
+        <button
+          onClick={() => {
+            const url = window.location.href;
+            window.open(url, "_blank");
+            setTimeout(() => {
+              window.location.href = url;
+            }, 300);
+          }}
           style={{
             display: "block",
+            width: "100%",
             background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
             color: "#ffffff",
             fontWeight: 600,
             fontSize: "15px",
             padding: "14px 24px",
             borderRadius: "10px",
-            textDecoration: "none",
+            border: "none",
+            cursor: "pointer",
             marginBottom: "12px",
             boxShadow: "0 4px 14px rgba(79,70,229,0.3)",
             transition: "opacity 0.15s ease",
+            fontFamily: "inherit",
           }}
         >
           Open in Browser
-        </a>
+        </button>
 
         {/* Copy link */}
         <button
