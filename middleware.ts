@@ -38,8 +38,9 @@ export async function middleware(request: NextRequest) {
   // 1. Embedded browser guard — redirect before anything else runs
   //    Skip if already on the fallback page to prevent redirect loops.
   if (pathname !== "/open-in-browser" && isEmbeddedBrowser(ua)) {
+    const destination = encodeURIComponent(request.url);
     return NextResponse.redirect(
-      new URL("/open-in-browser", request.url)
+      new URL(`/open-in-browser?to=${destination}`, request.url)
     );
   }
 

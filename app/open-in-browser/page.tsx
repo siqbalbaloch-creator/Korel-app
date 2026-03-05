@@ -2,11 +2,24 @@
 
 import { useState } from "react";
 
+const FALLBACK_URL = "https://usekorel.com";
+
+function getDestinationUrl(): string {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const to = params.get("to");
+    if (to) return decodeURIComponent(to);
+  } catch {
+    // ignore
+  }
+  return FALLBACK_URL;
+}
+
 export default function OpenInBrowserPage() {
   const [copied, setCopied] = useState(false);
 
   async function copyUrl() {
-    const url = window.location.href;
+    const url = getDestinationUrl();
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -17,7 +30,7 @@ export default function OpenInBrowserPage() {
   }
 
   async function handleOpenInBrowser() {
-    const url = window.location.href;
+    const url = getDestinationUrl();
     // Use replace() — most reliable redirect in restricted in-app browsers
     window.location.replace(url);
     // Auto-copy as fallback in case the redirect is blocked
