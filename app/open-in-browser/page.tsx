@@ -15,26 +15,50 @@ function getDestinationUrl(): string {
   return FALLBACK_URL;
 }
 
+function isAndroid(): boolean {
+  return /android/i.test(navigator.userAgent);
+}
+
+/**
+ * Build an Android intent URL that opens the destination directly in Chrome.
+ * Falls back to the destination URL itself if Chrome is not installed.
+ */
+function buildIntentUrl(dest: string): string {
+  // Strip the scheme — intent:// supplies its own
+  const withoutScheme = dest.replace(/^https?:\/\//, "");
+  const fallback = encodeURIComponent(dest);
+  return `intent://${withoutScheme}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${fallback};end`;
+}
+
 export default function OpenInBrowserPage() {
   const [copied, setCopied] = useState(false);
+  // null = not attempted, true = android intent fired, false = ios (can't auto-open)
+  const [intentFired, setIntentFired] = useState<boolean | null>(null);
 
   async function copyUrl() {
     const url = getDestinationUrl();
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
+      setTimeout(() => setCopied(false), 4000);
     } catch {
-      // Clipboard API unavailable — silently ignore
+      // Clipboard API unavailable
     }
   }
 
   async function handleOpenInBrowser() {
-    const url = getDestinationUrl();
-    // Use replace() — most reliable redirect in restricted in-app browsers
-    window.location.replace(url);
-    // Auto-copy as fallback in case the redirect is blocked
-    await copyUrl();
+    const dest = getDestinationUrl();
+
+    if (isAndroid()) {
+      // Android: intent URL asks the OS to open Chrome directly
+      window.location.href = buildIntentUrl(dest);
+      setIntentFired(true);
+    } else {
+      // iOS / other: WKWebView blocks programmatic browser launches.
+      // Best we can do is copy the link and instruct the user.
+      await copyUrl();
+      setIntentFired(false);
+    }
   }
 
   async function handleCopy() {
@@ -113,10 +137,48 @@ export default function OpenInBrowserPage() {
             marginBottom: "32px",
           }}
         >
-          LinkedIn opens links inside a restricted in-app browser that
-          blocks Google login. Please open Korel in your device browser
-          to continue.
+          LinkedIn&rsquo;s built-in browser blocks Google login. You need to
+          open Korel in Safari or Chrome to continue.
         </p>
+
+        {/* iOS notice after failed auto-open */}
+        {intentFired === false && (
+          <div
+            style={{
+              backgroundColor: "#FFF7ED",
+              border: "1px solid #FED7AA",
+              borderRadius: "10px",
+              padding: "12px 16px",
+              marginBottom: "20px",
+              textAlign: "left",
+            }}
+          >
+            <p style={{ fontSize: "14px", color: "#92400E", margin: 0, lineHeight: 1.55 }}>
+              <strong>iOS can&rsquo;t open the browser automatically.</strong>{" "}
+              Your link has been copied — tap <strong>Copy link</strong> below
+              then paste it in Safari or Chrome.
+            </p>
+          </div>
+        )}
+
+        {/* Android: show confirmation after intent fires */}
+        {intentFired === true && (
+          <div
+            style={{
+              backgroundColor: "#F0FDF4",
+              border: "1px solid #BBF7D0",
+              borderRadius: "10px",
+              padding: "12px 16px",
+              marginBottom: "20px",
+              textAlign: "left",
+            }}
+          >
+            <p style={{ fontSize: "14px", color: "#166534", margin: 0, lineHeight: 1.55 }}>
+              <strong>Opening Chrome&hellip;</strong> If nothing happened, use{" "}
+              <strong>Copy link</strong> and paste it in Chrome manually.
+            </p>
+          </div>
+        )}
 
         {/* Primary CTA */}
         <button

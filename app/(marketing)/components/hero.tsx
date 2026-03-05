@@ -13,7 +13,7 @@ export function Hero() {
     <section
       className="relative px-6 overflow-hidden pt-24 pb-20 lg:pt-[120px] lg:pb-[120px]"
       style={{
-        background: 'radial-gradient(ellipse 900px 600px at 55% 30%, rgba(99, 82, 255, 0.22) 0%, transparent 65%), #F9F8FF',
+        background: 'radial-gradient(ellipse 900px 600px at 55% 30%, rgba(99, 82, 255, 0.11) 0%, transparent 65%), #FDFCFF',
         position: 'relative',
       }}
     >
@@ -21,7 +21,7 @@ export function Hero() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse 900px 600px at 55% 30%, rgba(79, 70, 229, 0.08) 0%, transparent 65%)',
+          background: 'radial-gradient(ellipse 900px 600px at 55% 30%, rgba(79, 70, 229, 0.04) 0%, transparent 65%)',
           zIndex: 0,
         }}
       />
