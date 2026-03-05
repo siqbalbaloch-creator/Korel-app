@@ -2,19 +2,30 @@
 
 import { useState } from "react";
 
-const SITE_URL = "https://usekorel.com";
-
 export default function OpenInBrowserPage() {
   const [copied, setCopied] = useState(false);
 
-  async function handleCopy() {
+  async function copyUrl() {
+    const url = window.location.href;
     try {
-      await navigator.clipboard.writeText(SITE_URL);
+      await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 3000);
     } catch {
       // Clipboard API unavailable — silently ignore
     }
+  }
+
+  async function handleOpenInBrowser() {
+    const url = window.location.href;
+    // Use replace() — most reliable redirect in restricted in-app browsers
+    window.location.replace(url);
+    // Auto-copy as fallback in case the redirect is blocked
+    await copyUrl();
+  }
+
+  async function handleCopy() {
+    await copyUrl();
   }
 
   return (
@@ -96,13 +107,7 @@ export default function OpenInBrowserPage() {
 
         {/* Primary CTA */}
         <button
-          onClick={() => {
-            const url = window.location.href;
-            window.open(url, "_blank");
-            setTimeout(() => {
-              window.location.href = url;
-            }, 300);
-          }}
+          onClick={handleOpenInBrowser}
           style={{
             display: "block",
             width: "100%",
@@ -142,7 +147,7 @@ export default function OpenInBrowserPage() {
             fontFamily: "inherit",
           }}
         >
-          {copied ? "Link copied!" : "Copy link"}
+          {copied ? "Link copied — paste in Safari or Chrome" : "Copy link"}
         </button>
 
         {/* Divider */}

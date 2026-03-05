@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Radio } from "lucide-react";
+import { Radio, Menu, X } from "lucide-react";
 import { logMarketingEvent } from "@/lib/marketingEvents";
 
 function getInitials(name?: string | null, email?: string | null): string {
@@ -22,6 +22,7 @@ export function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const [imgError, setImgError] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   function handleSectionLink(sectionId: string) {
     if (pathname === "/") {
@@ -90,7 +91,23 @@ export function Navbar() {
 
         {/* Nav links + actions */}
         <div className="flex items-center" style={{ gap: "24px" }}>
-          <nav className="hidden md:flex items-center" style={{ gap: "32px" }}>
+          {/* Hamburger button — mobile only */}
+          <button
+            className="flex lg:hidden items-center justify-center"
+            onClick={() => setMenuOpen((o) => !o)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "4px",
+              color: "#0F172A",
+            }}
+            aria-label="Toggle menu"
+          >
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+
+          <nav className="hidden lg:flex items-center" style={{ gap: "32px" }}>
             <button
               onClick={() => handleSectionLink("how-it-works")}
               style={{
@@ -188,7 +205,7 @@ export function Navbar() {
 
           {isAuthed ? (
             /* Authenticated: Log out + Contact Support + avatar */
-            <div className="flex items-center" style={{ gap: "16px" }}>
+            <div className="hidden lg:flex items-center" style={{ gap: "16px" }}>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 style={{
@@ -277,6 +294,7 @@ export function Navbar() {
           ) : (
             /* Unauthenticated: Start Free */
             <button
+              className="hidden lg:block"
               onClick={() => {
                 void logMarketingEvent("CTA_CLICK", { cta: "navbar_start_free" });
                 router.push("/signup");
@@ -310,6 +328,124 @@ export function Navbar() {
           )}
         </div>
       </div>
+
+      {/* Mobile slide-down menu */}
+      {menuOpen && (
+        <div
+          className="lg:hidden"
+          style={{
+            borderTop: "1px solid rgba(226, 232, 240, 0.6)",
+            backgroundColor: "rgba(255, 255, 255, 0.97)",
+            padding: "16px 24px 20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+          }}
+        >
+          {[
+            { label: "How It Works", action: () => { handleSectionLink("how-it-works"); setMenuOpen(false); } },
+            { label: "Pricing", action: () => { handleSectionLink("pricing"); setMenuOpen(false); } },
+          ].map(({ label, action }) => (
+            <button
+              key={label}
+              onClick={action}
+              style={{
+                background: "none",
+                border: "none",
+                textAlign: "left",
+                padding: "12px 0",
+                fontSize: "15px",
+                fontWeight: 500,
+                color: "#0F172A",
+                cursor: "pointer",
+                borderBottom: "1px solid #F1F5F9",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+          {[
+            { label: "Docs", href: "/docs" },
+            { label: "Case Studies", href: "/case-studies" },
+            { label: "Insights", href: "/blog" },
+            { label: "Contact Support", href: "/support" },
+          ].map(({ label, href }) => (
+            <a
+              key={label}
+              href={href}
+              onClick={() => setMenuOpen(false)}
+              style={{
+                display: "block",
+                padding: "12px 0",
+                fontSize: "15px",
+                fontWeight: 500,
+                color: "#0F172A",
+                textDecoration: "none",
+                borderBottom: "1px solid #F1F5F9",
+              }}
+            >
+              {label}
+            </a>
+          ))}
+          {isAuthed ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingTop: "12px" }}>
+              <button
+                onClick={() => { void router.push("/support"); setMenuOpen(false); }}
+                style={{
+                  background: "none",
+                  border: "1.5px solid #CBD5E1",
+                  borderRadius: "10px",
+                  padding: "10px 16px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "#0F172A",
+                  cursor: "pointer",
+                  textAlign: "center",
+                }}
+              >
+                Contact Support
+              </button>
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: "10px 0",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  color: "#64748B",
+                  cursor: "pointer",
+                  textAlign: "center",
+                }}
+              >
+                Log out
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                void logMarketingEvent("CTA_CLICK", { cta: "mobile_nav_start_free" });
+                router.push("/signup");
+                setMenuOpen(false);
+              }}
+              style={{
+                marginTop: "12px",
+                background: "#3B82F6",
+                color: "#ffffff",
+                fontWeight: 600,
+                fontSize: "15px",
+                padding: "12px 24px",
+                borderRadius: "10px",
+                border: "none",
+                cursor: "pointer",
+                width: "100%",
+              }}
+            >
+              Start Free
+            </button>
+          )}
+        </div>
+      )}
     </nav>
   );
 }
