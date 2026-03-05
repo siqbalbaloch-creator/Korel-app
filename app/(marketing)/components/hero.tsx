@@ -1,130 +1,137 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight, FileText, MessageSquare, Mail, Zap } from "lucide-react";
 import { logMarketingEvent } from "@/lib/marketingEvents";
 
+const PACK_ITEMS = [
+  { icon: FileText, label: "LinkedIn Post", desc: "3 hook variants ready to publish" },
+  { icon: MessageSquare, label: "X Thread", desc: "7-tweet breakdown with CTA" },
+  { icon: Mail, label: "Newsletter Outline", desc: "Full section structure + copy" },
+  { icon: Zap, label: "Strategic Hooks", desc: "8 authority-building angles" },
+] as const;
+
 export function Hero() {
-  const [inputValue, setInputValue] = useState("");
   const router = useRouter();
 
   return (
     <section
-      className="relative px-6 overflow-hidden pt-24 pb-20 lg:pt-[120px] lg:pb-[120px]"
+      className="relative px-6 overflow-hidden py-28 lg:py-32"
       style={{
-        background: 'radial-gradient(ellipse 900px 600px at 55% 30%, rgba(99, 82, 255, 0.11) 0%, transparent 65%), #FDFCFF',
-        position: 'relative',
+        background:
+          "radial-gradient(ellipse 900px 600px at 55% 30%, rgba(99, 82, 255, 0.11) 0%, transparent 65%), #FDFCFF",
       }}
     >
       {/* Subtle radial glow */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse 900px 600px at 55% 30%, rgba(79, 70, 229, 0.04) 0%, transparent 65%)',
+          background:
+            "radial-gradient(ellipse 900px 600px at 55% 30%, rgba(79, 70, 229, 0.04) 0%, transparent 65%)",
           zIndex: 0,
         }}
       />
 
-      {/* Two-column split layout */}
+      {/* Two-column layout */}
       <div
-        className="relative mx-auto grid items-center grid-cols-1 lg:grid-cols-[minmax(0,1fr)_480px] gap-10 lg:gap-12"
-        style={{ maxWidth: '1320px', zIndex: 1 }}
+        className="relative mx-auto grid items-center grid-cols-1 lg:grid-cols-2 gap-16"
+        style={{ maxWidth: "1200px", zIndex: 1 }}
       >
-        {/* LEFT COLUMN — Copy + CTAs */}
+        {/* LEFT — Copy + CTAs */}
         <div className="flex flex-col">
           {/* Badge */}
-          <div style={{ marginBottom: '28px' }}>
+          <div style={{ marginBottom: "28px" }}>
             <div
               className="inline-flex items-center"
               style={{
-                color: '#6366F1',
-                fontSize: '12px',
+                color: "#6366F1",
+                fontSize: "12px",
                 fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                padding: '8px 16px',
-                borderRadius: '100px',
-                background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
-                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.08)',
-                gap: '8px',
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                padding: "8px 16px",
+                borderRadius: "100px",
+                background:
+                  "linear-gradient(to bottom, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))",
+                border: "1px solid rgba(99, 102, 241, 0.3)",
+                boxShadow: "0 2px 8px rgba(99, 102, 241, 0.08)",
+                gap: "8px",
               }}
             >
-              <Sparkles size={14} strokeWidth={2.5} style={{ color: '#6366F1' }} />
-              <span style={{ color: '#6366F1' }}>Authority Engine for B2B Founders</span>
+              <Sparkles size={14} strokeWidth={2.5} style={{ color: "#6366F1" }} />
+              <span>Authority Engine for B2B Founders</span>
             </div>
           </div>
 
           {/* Headline */}
           <h1
-            className="text-4xl lg:text-5xl"
+            className="text-5xl lg:text-6xl"
             style={{
-              color: '#1F2937',
+              color: "#1F2937",
               fontWeight: 700,
-              lineHeight: '1.1',
-              letterSpacing: '-0.5px',
-              marginBottom: '20px',
+              lineHeight: "1.08",
+              letterSpacing: "-1.5px",
+              marginBottom: "24px",
             }}
           >
-            Paste a Transcript.{' '}
+            Turn Founder Thinking
+            <br />
             <span
               style={{
-                background: 'linear-gradient(135deg, #4338CA 0%, #7C3AED 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+                background: "linear-gradient(135deg, #4338CA 0%, #7C3AED 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
               }}
             >
-              Generate a Structured Authority Pack.
+              Into Authority Content
             </span>
           </h1>
 
-          {/* Subheading */}
+          {/* Subheadline */}
           <p
+            className="max-w-xl"
             style={{
-              color: '#64748B',
+              color: "#64748B",
               fontWeight: 400,
-              fontSize: '18px',
-              lineHeight: '1.65',
-              marginBottom: '36px',
+              fontSize: "18px",
+              lineHeight: "1.65",
+              marginBottom: "40px",
             }}
           >
-            Korel extracts your thesis, builds a Strategic Authority Map, and compiles LinkedIn posts, X threads, and newsletters — instantly.
+            Korel extracts insights from transcripts and generates LinkedIn posts, X threads, and
+            newsletters instantly.
           </p>
 
-          {/* CTA buttons */}
-          <div
-            className="flex flex-col sm:flex-row items-start"
-            style={{ gap: '12px', marginBottom: '16px' }}
-          >
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row items-start" style={{ gap: "16px" }}>
             <button
               onClick={() => {
                 void logMarketingEvent("CTA_CLICK", { cta: "hero_generate_free_pack" });
-                router.push('/new');
+                router.push("/new");
               }}
               style={{
-                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
-                color: '#ffffff',
+                background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+                color: "#ffffff",
                 fontWeight: 600,
-                fontSize: '16px',
-                height: '52px',
-                paddingLeft: '28px',
-                paddingRight: '28px',
-                borderRadius: '12px',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 6px 24px rgba(79, 70, 229, 0.35)',
-                transition: 'all 0.2s ease',
-                whiteSpace: 'nowrap',
+                fontSize: "16px",
+                height: "52px",
+                paddingLeft: "28px",
+                paddingRight: "28px",
+                borderRadius: "12px",
+                border: "none",
+                cursor: "pointer",
+                boxShadow: "0 6px 24px rgba(79, 70, 229, 0.35)",
+                transition: "all 0.2s ease",
+                whiteSpace: "nowrap",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 10px 28px rgba(79, 70, 229, 0.45)';
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 10px 28px rgba(79, 70, 229, 0.45)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 6px 24px rgba(79, 70, 229, 0.35)';
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 6px 24px rgba(79, 70, 229, 0.35)";
               }}
             >
               Generate Your Free Pack
@@ -133,27 +140,29 @@ export function Hero() {
             <button
               onClick={() => {
                 void logMarketingEvent("CTA_CLICK", { cta: "hero_see_how_it_works" });
-                document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                document
+                  .getElementById("how-it-works")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
               className="inline-flex items-center"
               style={{
-                gap: '6px',
-                color: '#6366F1',
+                gap: "6px",
+                color: "#6366F1",
                 fontWeight: 500,
-                fontSize: '15px',
-                height: '52px',
-                padding: '0 4px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'color 0.2s ease',
-                whiteSpace: 'nowrap',
+                fontSize: "15px",
+                height: "52px",
+                padding: "0 4px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                transition: "color 0.2s ease",
+                whiteSpace: "nowrap",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#4F46E5';
+                e.currentTarget.style.color = "#4F46E5";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#6366F1';
+                e.currentTarget.style.color = "#6366F1";
               }}
             >
               See How It Works
@@ -162,121 +171,139 @@ export function Hero() {
           </div>
 
           {/* Caption */}
-          <p style={{ color: '#94A3B8', fontSize: '13px', fontWeight: 500, margin: 0 }}>
+          <p
+            style={{
+              color: "#94A3B8",
+              fontSize: "13px",
+              fontWeight: 500,
+              marginTop: "16px",
+              marginBottom: 0,
+            }}
+          >
             3 free packs &bull; No credit card required
           </p>
         </div>
 
-        {/* RIGHT COLUMN — Input form */}
-        <div>
+        {/* RIGHT — Authority Pack Preview */}
+        <div className="flex justify-center lg:justify-end">
           <div
+            className="w-full"
             style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '16px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
-              padding: '32px',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-              transition: 'all 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)';
-              e.currentTarget.style.boxShadow = '0 12px 40px rgba(99, 102, 241, 0.12), 0 2px 8px rgba(99, 102, 241, 0.08)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.06)';
-              e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.08)';
+              maxWidth: "440px",
+              backgroundColor: "#FFFFFF",
+              borderRadius: "16px",
+              border: "1px solid rgba(0, 0, 0, 0.07)",
+              padding: "28px",
+              boxShadow: "0 8px 40px rgba(0, 0, 0, 0.08)",
             }}
           >
-            <textarea
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Paste your YouTube link or transcript..."
-              style={{
-                width: '100%',
-                minHeight: '200px',
-                maxHeight: '200px',
-                padding: '20px',
-                borderRadius: '12px',
-                border: '1px solid #E2E8F0',
-                fontSize: '15px',
-                fontFamily: 'inherit',
-                color: '#0F172A',
-                backgroundColor: '#F8FAFC',
-                resize: 'none',
-                marginBottom: '20px',
-                transition: 'all 0.2s ease',
-                outline: 'none',
-                lineHeight: '1.6',
-                boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.04)',
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = '#6D5EF3';
-                e.currentTarget.style.backgroundColor = '#ffffff';
-                e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 3px rgba(109, 94, 243, 0.08)';
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = '#E2E8F0';
-                e.currentTarget.style.backgroundColor = '#F8FAFC';
-                e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(0, 0, 0, 0.04)';
-              }}
-            />
+            {/* Card header */}
+            <div
+              className="flex items-start justify-between"
+              style={{ marginBottom: "20px", gap: "12px" }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    color: "#6366F1",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: "4px",
+                  }}
+                >
+                  Authority Pack Preview
+                </div>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "#1F2937" }}>
+                  Why Most Founders Stay Invisible
+                </div>
+              </div>
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+                  borderRadius: "8px",
+                  padding: "5px 10px",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: "#fff",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                Generated
+              </div>
+            </div>
 
-            <button
-              disabled={!inputValue.trim()}
+            {/* Divider */}
+            <div style={{ height: "1px", backgroundColor: "#F1F5F9", marginBottom: "20px" }} />
+
+            {/* Pack items */}
+            {PACK_ITEMS.map(({ icon: Icon, label, desc }) => (
+              <div
+                key={label}
+                className="flex items-start"
+                style={{
+                  gap: "12px",
+                  padding: "12px 14px",
+                  borderRadius: "10px",
+                  backgroundColor: "#F8FAFC",
+                  border: "1px solid #E9EEF5",
+                  marginBottom: "8px",
+                }}
+              >
+                <div
+                  style={{
+                    color: "#6366F1",
+                    backgroundColor: "rgba(99, 102, 241, 0.08)",
+                    borderRadius: "7px",
+                    padding: "6px",
+                    flexShrink: 0,
+                    marginTop: "1px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Icon size={15} strokeWidth={2} />
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: "#1E293B",
+                      marginBottom: "2px",
+                    }}
+                  >
+                    {label}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#94A3B8", lineHeight: "1.4" }}>
+                    {desc}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Quality score footer */}
+            <div
               style={{
-                width: '100%',
-                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
-                color: '#ffffff',
-                fontWeight: 600,
-                fontSize: '16px',
-                height: '52px',
-                borderRadius: '12px',
-                border: 'none',
-                cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
-                boxShadow: '0 6px 24px rgba(79, 70, 229, 0.35)',
-                transition: 'all 0.2s ease',
-                marginBottom: '14px',
-                opacity: inputValue.trim() ? 1 : 0.55,
-              }}
-              onMouseEnter={(e) => {
-                if (!inputValue.trim()) return;
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 10px 28px rgba(79, 70, 229, 0.45)';
-                e.currentTarget.style.filter = 'brightness(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                if (!inputValue.trim()) return;
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 6px 24px rgba(79, 70, 229, 0.35)';
-                e.currentTarget.style.filter = 'brightness(1)';
-              }}
-              onClick={() => {
-                const trimmed = inputValue.trim();
-                if (!trimmed) return;
-                void logMarketingEvent("CTA_CLICK", { cta: "hero_input_generate" });
-                const params = new URLSearchParams({ input: trimmed });
-                router.push(`/new?${params.toString()}`);
+                marginTop: "16px",
+                padding: "10px 14px",
+                borderRadius: "8px",
+                background:
+                  "linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%)",
+                border: "1px solid rgba(99, 102, 241, 0.15)",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
-              Generate Free Pack
-            </button>
-
-            <p
-              style={{
-                color: '#64748B',
-                fontSize: '13px',
-                fontWeight: 500,
-                margin: 0,
-                textAlign: 'center',
-                lineHeight: '1.5',
-              }}
-            >
-              Generate your first pack in 30 seconds
-              <br />
-              <span style={{ fontSize: '12px', color: '#94A3B8' }}>
-                Early access — private founder cohort
+              <Sparkles size={13} style={{ color: "#6366F1", flexShrink: 0 }} />
+              <span style={{ fontSize: "12px", color: "#6366F1", fontWeight: 500 }}>
+                Quality Score: 94 / 100
               </span>
-            </p>
+            </div>
           </div>
         </div>
       </div>

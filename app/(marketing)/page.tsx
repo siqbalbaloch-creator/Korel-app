@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Navbar } from "./components/navbar";
 import { Hero } from "./components/hero";
+import { HeroInput } from "./components/hero-input";
 import { TrustStrip } from "./components/trust-strip";
 import { HowItWorks } from "./components/how-it-works";
 import { Transformation } from "./components/transformation";
@@ -62,6 +63,7 @@ export default function MarketingPage() {
       </Suspense>
       <Navbar />
       <Hero />
+      <HeroInput />
       <TrustStrip />
       <HowItWorks />
       <Transformation />
