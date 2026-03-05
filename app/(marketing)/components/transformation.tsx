@@ -4,21 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { X, Check } from "lucide-react";
 
 const BEFORE_BULLETS = [
-  "No defined thesis before writing",
-  "Claims vary across platforms",
-  "Evidence is inconsistent",
-  "Objections remain unaddressed",
-  "Messaging drifts over time",
-  "Output depends on prompt quality",
+  "Every post says something different",
+  "Your positioning keeps shifting",
+  "Interviews and updates go unused",
+  "Content feels scattered",
+  "Audience doesn't remember what you stand for",
 ] as const;
 
 const AFTER_BULLETS = [
-  "Core thesis defined before generation",
-  "Strategic claims organized and supported",
-  "Objections handled within structure",
-  "Platform assets inherit positioning",
-  "Messaging strength evaluated deterministically",
-  "Authority consistency tracked over time",
+  "All posts support one core thesis",
+  "LinkedIn, X, and newsletters stay aligned",
+  "Interviews become publishable content",
+  "Hooks and angles come from one strategy",
+  "Your authority compounds over time",
 ] as const;
 
 export function Transformation() {
@@ -129,7 +127,7 @@ export function Transformation() {
                   lineHeight: '1.2',
                 }}
               >
-                Unstructured Repurposing
+                Posting Random Content
               </h3>
               <p
                 style={{
@@ -141,7 +139,7 @@ export function Transformation() {
                   marginBottom: '28px',
                 }}
               >
-                Raw insights turned into isolated posts.
+                Your insights turn into disconnected posts.
               </p>
 
               <ul
@@ -231,7 +229,7 @@ export function Transformation() {
                   lineHeight: '1.2',
                 }}
               >
-                Structured Authority System
+                Consistent Authority Content
               </h3>
               <p
                 style={{
@@ -242,7 +240,7 @@ export function Transformation() {
                   marginBottom: '28px',
                 }}
               >
-                Every asset inherits the same strategic logic.
+                Every idea reinforces the same message.
               </p>
 
               <ul
@@ -308,7 +306,7 @@ export function Transformation() {
               margin: '0 auto 28px',
             }}
           >
-            Authority compounds when structure remains consistent.
+            Your best thinking deserves to be heard — consistently.
           </p>
           <a
             href="/new"

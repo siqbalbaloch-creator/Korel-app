@@ -1,30 +1,30 @@
 const CARDS = [
   {
     number: '01',
-    title: 'Input with Intent',
-    body: 'Paste transcript or update. Select your angle and authority profile.',
-    bullets: ['Interview / Investor Update', 'Angle selection', 'Thesis & positioning'],
+    title: 'Paste a Transcript or Update',
+    body: 'Drop in a podcast transcript, founder interview, investor update, or long-form thinking.',
+    bullets: ['Interview / podcast transcript', 'Investor update', 'Internal strategy memo', 'Long-form founder thoughts'],
     highlight: false,
   },
   {
     number: '02',
-    title: 'Strategic Authority Map',
-    body: 'Korel builds structured logic before writing.',
-    bullets: ['Core thesis', 'Three strategic claims', 'Evidence per claim', 'Objection handling', 'Hook matrix'],
+    title: 'Korel Extracts Your Core Ideas',
+    body: 'Korel analyzes the transcript and identifies the key ideas that define your authority.',
+    bullets: ['Core thesis', 'Supporting arguments', 'Strategic positioning', 'Audience hooks'],
     highlight: true,
   },
   {
     number: '03',
-    title: 'Platform-Ready Assets',
-    body: 'Generated from structure — not randomness.',
+    title: 'Content Is Structured for Platforms',
+    body: 'Your ideas are converted into ready-to-publish formats for every channel.',
     bullets: ['LinkedIn posts', 'X threads', 'Newsletter drafts', 'Hook variations'],
     highlight: false,
   },
   {
     number: '04',
-    title: 'Authority Engine',
-    body: 'Every pack is evaluated and tracked over time.',
-    bullets: ['Messaging Strength', 'Consistency scoring', 'Weakness radar', 'Drift detection'],
+    title: 'Publish Authority Content',
+    body: 'Edit if needed and publish the content across your channels.',
+    bullets: ['LinkedIn', 'X', 'Newsletters', 'Blogs'],
     highlight: false,
   },
 ] as const;
@@ -50,7 +50,7 @@ export function HowItWorks() {
               lineHeight: '1.15',
             }}
           >
-            How Korel Works
+            From Transcript to Authority Content
           </h2>
           <p
             style={{
@@ -61,7 +61,7 @@ export function HowItWorks() {
               margin: 0,
             }}
           >
-            A structured authority engine — not a content generator.
+            Four steps from raw thinking to published content — no copywriting required.
           </p>
         </div>
 
