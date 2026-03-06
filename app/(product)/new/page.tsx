@@ -129,9 +129,9 @@ export default function NewPackPage() {
   }, [initialInput, countsLoaded]);
 
   const EXAMPLE_URLS = [
-    { label: "Naval Ravikant — How to Get Rich", url: "https://www.youtube.com/watch?v=1-TZqOsVCNM" },
-    { label: "Sam Altman — How to Build the Future", url: "https://www.youtube.com/watch?v=oBt53YbR9Kk" },
-    { label: "Paul Graham — How to Start a Startup", url: "https://www.youtube.com/watch?v=f84LymEs67Y" },
+    { label: "Naval Ravikant Interview", url: "https://www.youtube.com/watch?v=1-TZqOsVCNM" },
+    { label: "Sam Altman Talk", url: "https://www.youtube.com/watch?v=oBt53YbR9Kk" },
+    { label: "Paul Graham Talk", url: "https://www.youtube.com/watch?v=f84LymEs67Y" },
   ] as const;
 
   const handleExampleClick = (url: string) => {
@@ -250,17 +250,14 @@ export default function NewPackPage() {
               <div className="grid grid-cols-3 gap-1.5">
                 {([
                   { value: "INTERVIEW", label: "Interview" },
-                  { value: "PRODUCT_UPDATE", label: "Product Update" },
-                  { value: "INVESTOR_UPDATE", label: "Investor Update" },
-                  { value: "STRATEGY_MEMO", label: "Strategy Memo" },
-                  { value: "CUSTOMER_STORY", label: "Customer Story" },
-                  { value: "CUSTOM", label: "Custom" },
+                  { value: "PRODUCT_UPDATE", label: "Update" },
+                  { value: "CUSTOMER_STORY", label: "Story" },
                 ] as const).map(({ value, label }) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setInputType(value)}
-                    className={`rounded-md px-2 py-1.5 text-xs font-medium text-center leading-tight transition-colors ${
+                    className={`rounded-md px-2 py-2 text-xs font-medium text-center leading-tight transition-colors ${
                       inputType === value
                         ? "bg-[#4F46E5] text-white"
                         : "bg-white border border-[#E2E8F0] text-[#475569] hover:border-[#4F46E5] hover:text-[#4F46E5]"
@@ -271,7 +268,7 @@ export default function NewPackPage() {
                 ))}
               </div>
               <p className="text-xs text-[#94A3B8]">
-                Different document types shape structure and positioning.
+                Different content types shape structure and positioning.
               </p>
             </div>
 
@@ -281,16 +278,13 @@ export default function NewPackPage() {
                 {([
                   { value: "THOUGHT_LEADERSHIP", label: "Thought Leadership" },
                   { value: "TACTICAL", label: "Tactical" },
-                  { value: "CONTRARIAN", label: "Contrarian" },
-                  { value: "STORY_DRIVEN", label: "Story-Driven" },
-                  { value: "VISIONARY", label: "Visionary" },
-                  { value: "EXECUTION_FOCUSED", label: "Execution" },
+                  { value: "STORY_DRIVEN", label: "Story" },
                 ] as const).map(({ value, label }) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setAngle(value)}
-                    className={`rounded-md px-2 py-1.5 text-xs font-medium text-center leading-tight transition-colors ${
+                    className={`rounded-md px-2 py-2 text-xs font-medium text-center leading-tight transition-colors ${
                       angle === value
                         ? "bg-[#4F46E5] text-white"
                         : "bg-white border border-[#E2E8F0] text-[#475569] hover:border-[#4F46E5] hover:text-[#4F46E5]"
@@ -305,16 +299,16 @@ export default function NewPackPage() {
               </p>
             </div>
 
-            {allTimePacks === 0 && !hasGenerated && !sourceInput.trim() && (
-              <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 space-y-2">
-                <p className="text-xs font-medium text-[#475569]">Try an example:</p>
-                <div className="space-y-1">
+            {!hasGenerated && !sourceInput.trim() && (
+              <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 space-y-2.5">
+                <p className="text-xs font-semibold text-[#475569] uppercase tracking-wide">Try an Example</p>
+                <div className="flex flex-col gap-1.5">
                   {EXAMPLE_URLS.map(({ label, url }) => (
                     <button
                       key={url}
                       type="button"
                       onClick={() => handleExampleClick(url)}
-                      className="w-full text-left rounded-md px-2 py-1.5 text-xs text-[#4F46E5] hover:bg-[#EEF2FF] transition-colors truncate"
+                      className="w-full text-left rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-xs font-medium text-[#334155] hover:border-[#4F46E5] hover:text-[#4F46E5] hover:bg-[#F5F3FF] transition-colors"
                     >
                       {label}
                     </button>

@@ -1,12 +1,20 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, Linkedin, Twitter, Mail, Zap } from "lucide-react";
 import PostPlatformSection from "../history/[id]/PostPlatformSection";
 import HooksSectionClient from "../history/[id]/HooksSectionClient";
 import SourcePanel from "../history/[id]/SourcePanel";
 import NewsletterSection from "../history/[id]/NewsletterSection";
+
+const GENERATION_STEPS = [
+  "Analyzing transcript...",
+  "Extracting thesis...",
+  "Generating hooks...",
+  "Creating LinkedIn post...",
+  "Building newsletter outline...",
+] as const;
 
 type PackResponse = {
   id: string;
@@ -169,6 +177,25 @@ export function AuthorityPackPreview({
     status: "idle",
     pack: null,
   });
+  const [stepIndex, setStepIndex] = useState(0);
+  const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (isGenerating) {
+      setStepIndex(0);
+      stepIntervalRef.current = setInterval(() => {
+        setStepIndex((prev) => Math.min(prev + 1, GENERATION_STEPS.length - 1));
+      }, 1800);
+    } else {
+      if (stepIntervalRef.current) {
+        clearInterval(stepIntervalRef.current);
+        stepIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
+    };
+  }, [isGenerating]);
 
   useEffect(() => {
     if (!packId) {
@@ -204,19 +231,65 @@ export function AuthorityPackPreview({
 
   if ((!packId && isGenerating) || (packId && state.status === "loading")) {
     return (
-      <div className="flex h-full w-full items-center justify-center">
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#C7D2FE] bg-[#EEF2FF]/40 px-6 py-5 text-center animate-pulse">
-          <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#4F46E5] shadow-sm">
-            <Loader2 className="h-4 w-4 animate-spin" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-neutral-900">
-              Assembling your Authority Pack…
-            </p>
-            <p className="text-xs text-neutral-500">
-              Extracting strategic hooks, platform-ready assets, and insight breakdowns from your transcript.
-            </p>
-          </div>
+      <div className="w-full max-w-md space-y-6">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-neutral-900">Authority Pack Preview</h2>
+          <p className="text-xs text-neutral-500">Generating your content assets...</p>
+        </div>
+
+        {/* Progress steps */}
+        <div className="rounded-xl border border-[#E0E7FF] bg-[#F5F3FF] p-4 space-y-2.5">
+          {GENERATION_STEPS.map((step, i) => (
+            <div key={step} className="flex items-center gap-3">
+              <div
+                className="flex-shrink-0 h-5 w-5 rounded-full flex items-center justify-center"
+                style={{
+                  background: i < stepIndex ? "#4F46E5" : i === stepIndex ? "#4F46E5" : "#E2E8F0",
+                  transition: "background 0.3s ease",
+                }}
+              >
+                {i < stepIndex ? (
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : i === stepIndex ? (
+                  <Loader2 size={10} className="animate-spin text-white" />
+                ) : null}
+              </div>
+              <span
+                className="text-sm"
+                style={{
+                  color: i <= stepIndex ? "#3730A3" : "#94A3B8",
+                  fontWeight: i === stepIndex ? 500 : 400,
+                  transition: "color 0.3s ease",
+                }}
+              >
+                {step}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Placeholder cards (dimmed while loading) */}
+        <div className="space-y-3 opacity-40">
+          {[
+            { icon: Linkedin, label: "LinkedIn Post", lines: [70, 55, 40] },
+            { icon: Twitter, label: "X Thread", lines: [65, 50] },
+            { icon: Mail, label: "Newsletter Outline", lines: [75, 60, 45] },
+            { icon: Zap, label: "Strategic Hooks", lines: [60, 50, 55] },
+          ].map(({ icon: Icon, label, lines }) => (
+            <div key={label} className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Icon size={14} className="text-[#4F46E5]" />
+                <span className="text-xs font-semibold text-neutral-700">{label}</span>
+              </div>
+              <div className="space-y-2">
+                {lines.map((w, i) => (
+                  <div key={i} className="h-2.5 rounded-full bg-neutral-100" style={{ width: `${w}%` }} />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -246,21 +319,36 @@ export function AuthorityPackPreview({
 
   if (!packId || state.status === "idle") {
     return (
-      <div className="max-w-md space-y-4 text-center">
-        <div className="mx-auto flex items-center justify-center">
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF2FF] text-[#4F46E5] text-sm font-medium">
-            1
-          </span>
+      <div className="w-full max-w-md space-y-4">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-neutral-900">Authority Pack Preview</h2>
+          <p className="text-xs text-neutral-500">Your generated content will appear here.</p>
         </div>
-        <h2 className="text-xl font-semibold">Generate your first Authority Pack</h2>
-        <p className="text-sm text-[#64748B]">
-          Turn one episode into a structured authority document with hooks, platform-ready assets, and a newsletter.
-        </p>
-        <ol className="space-y-2 text-sm text-[#64748B]">
-          <li>1. Paste transcript or link on the left</li>
-          <li>2. Generate your Authority Pack</li>
-          <li>3. Review and copy platform-ready assets here</li>
-        </ol>
+        <div className="space-y-3">
+          {[
+            { icon: Linkedin, label: "LinkedIn Post", desc: "Long-form thought leadership post", lines: [70, 55, 40] },
+            { icon: Twitter, label: "X Thread", desc: "Hook + thread optimised for X", lines: [65, 50] },
+            { icon: Mail, label: "Newsletter Outline", desc: "Structured outline for your list", lines: [75, 60, 45] },
+            { icon: Zap, label: "Strategic Hooks", desc: "High-leverage opening lines", lines: [60, 50, 55] },
+          ].map(({ icon: Icon, label, desc, lines }) => (
+            <div key={label} className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EEF2FF]">
+                    <Icon size={13} className="text-[#4F46E5]" />
+                  </div>
+                  <span className="text-xs font-semibold text-neutral-700">{label}</span>
+                </div>
+                <span className="text-[10px] text-neutral-400">{desc}</span>
+              </div>
+              <div className="space-y-2">
+                {lines.map((w, i) => (
+                  <div key={i} className="h-2.5 rounded-full bg-neutral-100" style={{ width: `${w}%` }} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Radio, Menu, X } from "lucide-react";
+import { Radio, Menu, X, Plus, User, Settings, LogOut } from "lucide-react";
 import { logMarketingEvent } from "@/lib/marketingEvents";
 
 function getInitials(name?: string | null, email?: string | null): string {
@@ -23,6 +23,20 @@ export function Navbar() {
   const pathname = usePathname();
   const [imgError, setImgError] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [avatarDropdownOpen, setAvatarDropdownOpen] = useState(false);
+  const avatarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (avatarRef.current && !avatarRef.current.contains(event.target as Node)) {
+        setAvatarDropdownOpen(false);
+      }
+    }
+    if (avatarDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [avatarDropdownOpen]);
 
   function handleSectionLink(sectionId: string) {
     if (pathname === "/") {
@@ -107,6 +121,7 @@ export function Navbar() {
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
 
+          {/* Desktop nav links */}
           <nav className="hidden lg:flex items-center" style={{ gap: "32px" }}>
             <button
               onClick={() => handleSectionLink("how-it-works")}
@@ -142,20 +157,6 @@ export function Navbar() {
             >
               Pricing
             </button>
-            <a
-              href="/docs"
-              style={{
-                color: "#64748B",
-                fontSize: "15px",
-                fontWeight: 500,
-                textDecoration: "none",
-                transition: "color 0.2s ease",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
-            >
-              Docs
-            </a>
             <Link
               href="/case-studies"
               style={{
@@ -204,92 +205,177 @@ export function Navbar() {
           </nav>
 
           {isAuthed ? (
-            /* Authenticated: Log out + Contact Support + avatar */
-            <div className="hidden lg:flex items-center" style={{ gap: "16px" }}>
+            /* Authenticated: Create Content + Avatar dropdown */
+            <div className="hidden lg:flex items-center" style={{ gap: "12px" }}>
               <button
-                onClick={() => signOut({ callbackUrl: "/" })}
+                onClick={() => router.push("/new")}
                 style={{
-                  color: "#64748B",
-                  fontSize: "15px",
-                  fontWeight: 500,
-                  background: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+                  color: "#ffffff",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  height: "38px",
+                  padding: "0 18px",
+                  borderRadius: "10px",
                   border: "none",
                   cursor: "pointer",
-                  padding: 0,
-                  transition: "color 0.2s ease",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
-              >
-                Log out
-              </button>
-
-              <button
-                onClick={() => router.push("/support")}
-                style={{
-                  color: "#0F172A",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  background: "none",
-                  border: "1.5px solid #CBD5E1",
-                  cursor: "pointer",
-                  padding: "0 16px",
-                  height: "38px",
-                  borderRadius: "10px",
+                  boxShadow: "0 4px 12px rgba(79, 70, 229, 0.25)",
                   transition: "all 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#6D5EF3";
-                  e.currentTarget.style.color = "#6D5EF3";
+                  e.currentTarget.style.opacity = "0.9";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 6px 16px rgba(79, 70, 229, 0.35)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#CBD5E1";
-                  e.currentTarget.style.color = "#0F172A";
+                  e.currentTarget.style.opacity = "1";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(79, 70, 229, 0.25)";
                 }}
               >
-                Contact Support
+                <Plus size={15} strokeWidth={2.5} />
+                Create Content
               </button>
 
-              <button
-                onClick={() => router.push("/new")}
-                title="Go to dashboard"
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  borderRadius: "50%",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 0,
-                  overflow: "hidden",
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: userImage
-                    ? "transparent"
-                    : "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
-                }}
-              >
-                {userImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={userImage}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    onError={() => setImgError(true)}
+              {/* Avatar with dropdown */}
+              <div ref={avatarRef} style={{ position: "relative" }}>
+                <button
+                  onClick={() => setAvatarDropdownOpen((o) => !o)}
+                  title="Account menu"
+                  style={{
+                    width: "38px",
+                    height: "38px",
+                    borderRadius: "50%",
+                    border: avatarDropdownOpen ? "2px solid #4F46E5" : "2px solid transparent",
+                    cursor: "pointer",
+                    padding: 0,
+                    overflow: "hidden",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: userImage
+                      ? "transparent"
+                      : "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+                    transition: "border-color 0.15s ease",
+                  }}
+                >
+                  {userImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={userImage}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      onError={() => setImgError(true)}
+                      style={{
+                        width: "38px",
+                        height: "38px",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  ) : (
+                    <span style={{ color: "#fff", fontWeight: 700, fontSize: "14px" }}>
+                      {initials}
+                    </span>
+                  )}
+                </button>
+
+                {/* Dropdown menu */}
+                {avatarDropdownOpen && (
+                  <div
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      objectFit: "cover",
-                      display: "block",
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      right: 0,
+                      width: "180px",
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: "12px",
+                      boxShadow: "0 8px 24px rgba(15, 23, 42, 0.10)",
+                      padding: "6px",
+                      zIndex: 100,
                     }}
-                  />
-                ) : (
-                  <span style={{ color: "#fff", fontWeight: 700, fontSize: "14px" }}>
-                    {initials}
-                  </span>
+                  >
+                    {session?.user?.name && (
+                      <div
+                        style={{
+                          padding: "8px 12px 10px",
+                          borderBottom: "1px solid #F1F5F9",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        <p style={{ fontSize: "13px", fontWeight: 600, color: "#0F172A", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {session.user.name}
+                        </p>
+                        {session?.user?.email && (
+                          <p style={{ fontSize: "11px", color: "#94A3B8", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {session.user.email}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {[
+                      { icon: User, label: "Profile", href: "/settings" },
+                      { icon: Settings, label: "Settings", href: "/settings" },
+                    ].map(({ icon: Icon, label, href }) => (
+                      <button
+                        key={label}
+                        onClick={() => { router.push(href); setAvatarDropdownOpen(false); }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          width: "100%",
+                          padding: "9px 12px",
+                          fontSize: "14px",
+                          fontWeight: 500,
+                          color: "#334155",
+                          background: "none",
+                          border: "none",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          transition: "background 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "#F8FAFC")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                      >
+                        <Icon size={15} color="#64748B" strokeWidth={1.75} />
+                        {label}
+                      </button>
+                    ))}
+                    <div style={{ borderTop: "1px solid #F1F5F9", margin: "4px 0" }} />
+                    <button
+                      onClick={() => { void signOut({ callbackUrl: "/" }); setAvatarDropdownOpen(false); }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        width: "100%",
+                        padding: "9px 12px",
+                        fontSize: "14px",
+                        fontWeight: 500,
+                        color: "#DC2626",
+                        background: "none",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        transition: "background 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#FEF2F2")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                    >
+                      <LogOut size={15} color="#DC2626" strokeWidth={1.75} />
+                      Log out
+                    </button>
+                  </div>
                 )}
-              </button>
+              </div>
             </div>
           ) : (
             /* Unauthenticated: Start Free */
@@ -365,10 +451,8 @@ export function Navbar() {
             </button>
           ))}
           {[
-            { label: "Docs", href: "/docs" },
             { label: "Case Studies", href: "/case-studies" },
             { label: "Insights", href: "/blog" },
-            { label: "Contact Support", href: "/support" },
           ].map(({ label, href }) => (
             <a
               key={label}
@@ -390,20 +474,40 @@ export function Navbar() {
           {isAuthed ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingTop: "12px" }}>
               <button
-                onClick={() => { void router.push("/support"); setMenuOpen(false); }}
+                onClick={() => { router.push("/new"); setMenuOpen(false); }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+                  color: "#ffffff",
+                  fontWeight: 600,
+                  fontSize: "15px",
+                  padding: "12px 24px",
+                  borderRadius: "10px",
+                  border: "none",
+                  cursor: "pointer",
+                  width: "100%",
+                }}
+              >
+                <Plus size={16} strokeWidth={2.5} />
+                Create Content
+              </button>
+              <button
+                onClick={() => { router.push("/settings"); setMenuOpen(false); }}
                 style={{
                   background: "none",
-                  border: "1.5px solid #CBD5E1",
-                  borderRadius: "10px",
-                  padding: "10px 16px",
+                  border: "none",
+                  padding: "10px 0",
                   fontSize: "14px",
-                  fontWeight: 600,
-                  color: "#0F172A",
+                  fontWeight: 500,
+                  color: "#64748B",
                   cursor: "pointer",
                   textAlign: "center",
                 }}
               >
-                Contact Support
+                Settings
               </button>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}

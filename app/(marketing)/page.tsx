@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Navbar } from "./components/navbar";
 import { Hero } from "./components/hero";
-import { HeroInput } from "./components/hero-input";
-import { TrustStrip } from "./components/trust-strip";
 import { HowItWorks } from "./components/how-it-works";
-import { Transformation } from "./components/transformation";
 import { WhatYouGet } from "./components/what-you-get";
 import { Pricing } from "./components/pricing";
 import { WhyNotChatGPT } from "./components/WhyNotChatGPT";
@@ -14,6 +11,7 @@ import { FinalCTA } from "./components/final-cta";
 import { Footer } from "./components/footer";
 import { BlogPreviewSection } from "./components/blog-preview";
 import { ScrollOnLoad } from "./components/ScrollOnLoad";
+import { ExampleAuthorityContent } from "./components/example-authority-content";
 
 export const metadata: Metadata = {
   alternates: { canonical: "https://www.usekorel.com" },
@@ -63,15 +61,13 @@ export default function MarketingPage() {
       </Suspense>
       <Navbar />
       <Hero />
-      <HeroInput />
-      <TrustStrip />
+      <ExampleAuthorityContent />
       <HowItWorks />
-      <Transformation />
       <WhatYouGet />
-      <Pricing />
       <WhyNotChatGPT />
-      <FAQ />
+      <Pricing />
       <BlogPreviewSection />
+      <FAQ />
       <FinalCTA />
       <Footer />
     </div>
