@@ -124,7 +124,7 @@ const TEMPERATURE = 0.4;
 
 const MAX_TOKENS = {
   extraction: { min: 450, max: 900 },
-  sam: { min: 900, max: 2400 }, // Phase 16: SAM is substantially larger than insights
+  sam: { min: 2000, max: 4000 }, // SAM schema has 6 required top-level sections with nested arrays — needs ≥1500 tokens even for short inputs
   linkedin: 650,
   xthread: 700,
   newsletter: 900,
@@ -1297,7 +1297,12 @@ const extractStrategicAuthorityMap = async (
       },
     });
 
-    const text = response.choices[0]?.message?.content;
+    const choice = response.choices[0];
+    if (choice?.finish_reason === "length") {
+      throw new ExtractionParseError("SAM extraction response was truncated (max_tokens reached)");
+    }
+
+    const text = choice?.message?.content;
     if (typeof text !== "string" || !text) {
       throw new ExtractionParseError("OpenAI returned no content for SAM extraction");
     }
