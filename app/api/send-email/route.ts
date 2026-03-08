@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-
-const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
-const GMAIL_MCP_URL = "https://gmail.mcp.claude.com/mcp";
+import nodemailer from "nodemailer";
 
 export async function POST(req: NextRequest) {
   const session = await getServerAuthSession();
@@ -12,104 +10,64 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { to, toName, subject, body, packId } = await req.json();
+  const { to, toName, subject, body, packId } = await req.json() as {
+    to: string;
+    toName?: string;
+    subject: string;
+    body: string;
+    packId?: string;
+  };
+
   if (!to || !subject || !body) {
     return NextResponse.json({ error: "Missing to, subject, or body" }, { status: 400 });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    logger.error("send-email.no-api-key");
-    return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
+  const gmailUser = process.env.GMAIL_USER;
+  const clientId = process.env.GMAIL_CLIENT_ID;
+  const clientSecret = process.env.GMAIL_CLIENT_SECRET;
+  const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
+
+  if (!gmailUser || !clientId || !clientSecret || !refreshToken) {
+    logger.error("send-email.missing-env", {
+      hasUser: !!gmailUser,
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+      hasRefreshToken: !!refreshToken,
+    });
+    return NextResponse.json({ error: "Gmail OAuth2 not configured" }, { status: 500 });
   }
 
   logger.info("send-email.start", {
     to,
     subject,
     packId: packId ?? null,
-    apiKeyPrefix: apiKey.slice(0, 8),
-    mcpUrl: GMAIL_MCP_URL,
+    gmailUser,
   });
-
-  const prompt = `Send an email using Gmail with these exact details:
-To: ${to}
-Subject: ${subject}
-Body:
-${body}
-
-Use the Gmail tool to send this email now. Do not ask for confirmation, just send it.`;
 
   let success = false;
   let errorMsg: string | null = null;
 
   try {
-    const requestBody = {
-      model: "claude-sonnet-4-6",
-      max_tokens: 1000,
-      mcp_servers: [{ type: "url", url: GMAIL_MCP_URL, name: "gmail" }],
-      messages: [{ role: "user", content: prompt }],
-    };
-
-    logger.info("send-email.anthropic-request", {
-      model: requestBody.model,
-      mcpServers: requestBody.mcp_servers,
-    });
-
-    const res = await fetch(ANTHROPIC_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "mcp-client-2025-04-04",
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        type: "OAuth2",
+        user: gmailUser,
+        clientId,
+        clientSecret,
+        refreshToken,
       },
-      body: JSON.stringify(requestBody),
     });
 
-    logger.info("send-email.anthropic-response", {
-      status: res.status,
-      ok: res.ok,
+    await transporter.sendMail({
+      from: gmailUser,
+      to,
+      subject,
+      text: body,
     });
 
-    if (!res.ok) {
-      const err = await res.text();
-      errorMsg = `Anthropic API error ${res.status}: ${err}`;
-      logger.error("send-email.anthropic-error", { status: res.status, body: err });
-    } else {
-      const data = await res.json() as {
-        content?: { type: string; name?: string; input?: unknown; text?: string }[];
-        stop_reason?: string;
-        usage?: unknown;
-      };
-      const contentTypes = data.content?.map((b) => b.type) ?? [];
-      const toolUsed = data.content?.some((b) => b.type === "mcp_tool_use");
-      const toolNames = data.content
-        ?.filter((b) => b.type === "mcp_tool_use")
-        .map((b) => b.name) ?? [];
-      const textBlocks = data.content
-        ?.filter((b) => b.type === "text")
-        .map((b) => b.text) ?? [];
-
-      logger.info("send-email.anthropic-content", {
-        stopReason: data.stop_reason,
-        contentTypes,
-        toolUsed,
-        toolNames,
-        textPreview: textBlocks[0]?.slice(0, 200) ?? null,
-        usage: data.usage,
-      });
-
-      if (!toolUsed) {
-        errorMsg = "Gmail tool was not invoked — check MCP connection";
-        logger.warn("send-email.no-tool-use", {
-          contentTypes,
-          textPreview: textBlocks[0]?.slice(0, 500) ?? null,
-        });
-      } else {
-        success = true;
-        logger.info("send-email.success", { to, toolNames });
-      }
-    }
+    success = true;
+    logger.info("send-email.success", { to });
   } catch (e) {
     errorMsg = e instanceof Error ? e.message : "Unknown error";
     logger.error("send-email.exception", { error: errorMsg });
