@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Lock, Sparkles } from "lucide-react";
+import { Sparkles, Upload, Lock } from "lucide-react";
 import { AuthorityPackPreview } from "./AuthorityPackPreview";
 import { UpgradeModal } from "./UpgradeModal";
 
@@ -26,6 +26,58 @@ type PacksResponse = {
   message?: string;
   lastCreatedId?: string;
 };
+
+// Compact segmented control used for Input Type and Angle
+function SegmentedControl({
+  options,
+  value,
+  onChange,
+  disabled,
+}: {
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        backgroundColor: "#F1F5F9",
+        borderRadius: "10px",
+        padding: "3px",
+        gap: "2px",
+      }}
+    >
+      {options.map((opt) => {
+        const active = opt.value === value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(opt.value)}
+            style={{
+              padding: "6px 14px",
+              borderRadius: "8px",
+              fontSize: "12px",
+              fontWeight: active ? 600 : 500,
+              color: active ? "#4F46E5" : "#64748B",
+              backgroundColor: active ? "#ffffff" : "transparent",
+              border: "none",
+              cursor: disabled ? "not-allowed" : "pointer",
+              boxShadow: active ? "0 1px 4px rgba(15,23,42,0.1)" : "none",
+              transition: "all 0.15s ease",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function NewPackPage() {
   const searchParams = useSearchParams();
@@ -205,9 +257,17 @@ export default function NewPackPage() {
   const isGenerateDisabled = isGenerating || !sourceInput.trim() || limitReached;
 
   const effectiveLimit = monthlyLimit === Infinity ? null : monthlyLimit;
-  const progressPercent = effectiveLimit
-    ? Math.min(100, Math.round((packsThisMonth / effectiveLimit) * 100))
-    : 0;
+
+  const INPUT_TYPE_OPTIONS = [
+    { value: "INTERVIEW", label: "Interview" },
+    { value: "PRODUCT_UPDATE", label: "Update" },
+    { value: "CUSTOMER_STORY", label: "Story" },
+  ];
+  const ANGLE_OPTIONS = [
+    { value: "THOUGHT_LEADERSHIP", label: "Thought Leadership" },
+    { value: "TACTICAL", label: "Tactical" },
+    { value: "STORY_DRIVEN", label: "Story" },
+  ];
 
   return (
     <>
@@ -218,211 +278,360 @@ export default function NewPackPage() {
         />
       )}
 
-      <div className="flex-1 flex flex-col md:flex-row">
+      <div className="flex-1 flex flex-col md:flex-row" style={{ minHeight: 0 }}>
         {/* ── Left panel ── */}
-        <section
-          className="w-full md:w-[30%] border-b border-[#E2E8F0] md:border-b-0 md:border-r p-8 relative"
+        <aside
           style={{
+            width: "100%",
+            maxWidth: "420px",
+            flexShrink: 0,
+            borderRight: "1px solid #E9EEF5",
+            backgroundColor: "#FAFBFD",
+            display: "flex",
+            flexDirection: "column",
+            padding: "28px 24px",
+            gap: "20px",
             opacity: isGenerating ? 0.55 : 1,
             pointerEvents: isGenerating ? "none" : "auto",
             transition: "opacity 0.25s ease",
           }}
         >
-          {/* Lock indicator */}
+          {/* Header row */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <h1 style={{ fontSize: "18px", fontWeight: 700, color: "#0F172A", margin: 0, letterSpacing: "-0.3px" }}>
+                New Authority Pack
+              </h1>
+              <p style={{ fontSize: "13px", color: "#94A3B8", margin: "3px 0 0", fontWeight: 400 }}>
+                Paste a link or transcript below
+              </p>
+            </div>
+            {/* Usage badge */}
+            {effectiveLimit !== null && (
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: limitReached ? "#DC2626" : packsThisMonth >= effectiveLimit - 1 ? "#D97706" : "#16A34A",
+                  backgroundColor: limitReached ? "#FEF2F2" : packsThisMonth >= effectiveLimit - 1 ? "#FFFBEB" : "#F0FDF4",
+                  border: `1px solid ${limitReached ? "#FECACA" : packsThisMonth >= effectiveLimit - 1 ? "#FDE68A" : "#BBF7D0"}`,
+                  borderRadius: "100px",
+                  padding: "4px 10px",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                {packsThisMonth}/{effectiveLimit} used
+              </div>
+            )}
+          </div>
+
+          {/* Generating lock indicator */}
           {isGenerating && (
-            <div className="flex items-center gap-1.5 mb-4 px-3 py-2 rounded-lg bg-[#F5F3FF] border border-[#E0E7FF]">
-              <Lock size={12} className="text-[#4F46E5] flex-shrink-0" />
-              <span className="text-xs font-medium text-[#4338CA]">
-                Input locked while generating content
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "10px 14px",
+                borderRadius: "10px",
+                backgroundColor: "#F5F3FF",
+                border: "1px solid #E0E7FF",
+              }}
+            >
+              <Lock size={12} style={{ color: "#4F46E5", flexShrink: 0 }} />
+              <span style={{ fontSize: "12px", fontWeight: 500, color: "#4338CA" }}>
+                Locked while generating — nearly there…
               </span>
             </div>
           )}
 
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold">Source</h2>
-            <p className="text-sm text-[#64748B]">
-              Turn a talk, podcast, or internal memo into a week of authority content.
-            </p>
-          </div>
+          {/* Main textarea */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <textarea
+              ref={textareaRef}
+              id="source-input"
+              rows={7}
+              placeholder="Paste a YouTube link or transcript…"
+              value={sourceInput}
+              disabled={isGenerating}
+              onChange={(e) => {
+                setSourceInput(e.target.value);
+                if (errorMessage) setErrorMessage("");
+              }}
+              style={{
+                width: "100%",
+                resize: "none",
+                border: "1.5px solid #E2E8F0",
+                borderRadius: "14px",
+                padding: "14px 16px",
+                fontSize: "14px",
+                lineHeight: 1.7,
+                color: "#0F172A",
+                backgroundColor: "#ffffff",
+                fontFamily: "inherit",
+                outline: "none",
+                boxSizing: "border-box",
+                transition: "border-color 0.15s, box-shadow 0.15s",
+                boxShadow: "0 1px 3px rgba(15,23,42,0.05)",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#818CF8";
+                e.currentTarget.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.12)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#E2E8F0";
+                e.currentTarget.style.boxShadow = "0 1px 3px rgba(15,23,42,0.05)";
+              }}
+            />
 
-          <div className="mt-6 space-y-5">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-[#334155]" htmlFor="source-input">
-                Input
-              </label>
-              <textarea
-                ref={textareaRef}
-                id="source-input"
-                rows={6}
-                placeholder="Paste a YouTube link or transcript..."
-                className="w-full resize-none rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#4F46E5] focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
-                value={sourceInput}
-                disabled={isGenerating}
-                onChange={(event) => {
-                  setSourceInput(event.target.value);
-                  if (errorMessage) setErrorMessage("");
-                }}
-              />
-              <p className="text-xs text-[#94A3B8]">
-                We extract your strategic insights first → then generate platform-ready assets.
+            {/* Upload + hint row */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <p style={{ fontSize: "12px", color: "#94A3B8", margin: 0 }}>
+                YouTube link or raw transcript
               </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#334155]">Input Type</label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {([
-                  { value: "INTERVIEW", label: "Interview" },
-                  { value: "PRODUCT_UPDATE", label: "Update" },
-                  { value: "CUSTOMER_STORY", label: "Story" },
-                ] as const).map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    disabled={isGenerating}
-                    onClick={() => setInputType(value)}
-                    className={`rounded-md px-2 py-2 text-xs font-medium text-center leading-tight transition-colors ${
-                      inputType === value
-                        ? "bg-[#4F46E5] text-white"
-                        : "bg-white border border-[#E2E8F0] text-[#475569] hover:border-[#4F46E5] hover:text-[#4F46E5]"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-[#94A3B8]">
-                Different content types shape structure and positioning.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#334155]">Angle</label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {([
-                  { value: "THOUGHT_LEADERSHIP", label: "Thought Leadership" },
-                  { value: "TACTICAL", label: "Tactical" },
-                  { value: "STORY_DRIVEN", label: "Story" },
-                ] as const).map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    disabled={isGenerating}
-                    onClick={() => setAngle(value)}
-                    className={`rounded-md px-2 py-2 text-xs font-medium text-center leading-tight transition-colors ${
-                      angle === value
-                        ? "bg-[#4F46E5] text-white"
-                        : "bg-white border border-[#E2E8F0] text-[#475569] hover:border-[#4F46E5] hover:text-[#4F46E5]"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-[#94A3B8]">
-                Same source, different positioning lens.
-              </p>
-            </div>
-
-            {!hasGenerated && !sourceInput.trim() && (
-              <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 space-y-2.5">
-                <p className="text-xs font-semibold text-[#475569] uppercase tracking-wide">Try an Example</p>
-                <div className="flex flex-col gap-1.5">
-                  {EXAMPLE_URLS.map(({ label, url }) => (
-                    <button
-                      key={url}
-                      type="button"
-                      onClick={() => handleExampleClick(url)}
-                      className="w-full text-left rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-xs font-medium text-[#334155] hover:border-[#4F46E5] hover:text-[#4F46E5] hover:bg-[#F5F3FF] transition-colors"
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div>
               <label
                 htmlFor="transcript-upload"
-                className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-[#E2E8F0] px-6 py-8 text-center text-sm text-[#64748B] hover:bg-[#F1F5F9]"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  color: "#6366F1",
+                  cursor: "pointer",
+                }}
               >
-                <span className="font-medium text-[#475569]">Click to upload or drag and drop</span>
-                <span className="text-xs text-[#94A3B8]">.txt, .srt, .vtt files</span>
-              </label>
-              <input id="transcript-upload" type="file" className="hidden" accept=".txt,.srt,.vtt" disabled={isGenerating} />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-[#334155]" htmlFor="episode-title">
-                Episode Title
+                <Upload size={12} />
+                Upload file
               </label>
               <input
-                id="episode-title"
-                type="text"
-                placeholder="Enter episode title..."
-                className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#4F46E5] focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
-                value={episodeTitle}
+                id="transcript-upload"
+                type="file"
+                className="hidden"
+                accept=".txt,.srt,.vtt"
                 disabled={isGenerating}
-                onChange={(event) => setEpisodeTitle(event.target.value)}
               />
             </div>
-
-            <button
-              type="button"
-              disabled={isGenerateDisabled}
-              onClick={limitReached ? () => setShowUpgradeModal(true) : () => void handleGenerate()}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#4F46E5] py-3 text-sm font-medium text-white shadow-sm hover:bg-[#4338CA] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Sparkles className="h-4 w-4" />
-              <span>Generate Authority Pack</span>
-            </button>
-
-            {limitReached ? (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 space-y-2">
-                <p className="text-sm font-medium text-amber-800">
-                  You&apos;ve reached your monthly limit
-                  {effectiveLimit !== null ? ` (${packsThisMonth}/${effectiveLimit})` : ""}.
-                </p>
-                <p className="text-xs text-amber-700">
-                  Upgrade to continue turning your source material into structured authority assets.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowUpgradeModal(true)}
-                  className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
-                >
-                  View Upgrade Plans
-                </button>
-              </div>
-            ) : null}
-
-            {errorMessage ? (
-              <p className="text-center text-xs text-[#A84545]">{errorMessage}</p>
-            ) : null}
-
-            {effectiveLimit !== null ? (
-              <div className="space-y-2">
-                <div className="h-2 w-full rounded-full bg-[#E2E8F0]">
-                  <div
-                    className="h-2 rounded-full bg-[#4F46E5]"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <p className="text-center text-xs text-[#64748B]">
-                  {packsThisMonth} of {effectiveLimit} Authority Packs used this month
-                </p>
-              </div>
-            ) : (
-              <p className="text-center text-xs text-[#64748B]">
-                {packsThisMonth} Authority Packs generated this month · Unlimited
-              </p>
-            )}
           </div>
-        </section>
+
+          {/* Example prompts — only when empty */}
+          {!hasGenerated && !sourceInput.trim() && (
+            <div
+              style={{
+                borderRadius: "12px",
+                border: "1px solid #E9EEF5",
+                backgroundColor: "#ffffff",
+                padding: "14px 16px",
+              }}
+            >
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.07em", margin: "0 0 10px" }}>
+                Try an example
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {EXAMPLE_URLS.map(({ label, url }) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => handleExampleClick(url)}
+                    style={{
+                      textAlign: "left",
+                      padding: "9px 12px",
+                      borderRadius: "9px",
+                      border: "1px solid #F1F5F9",
+                      backgroundColor: "#F8FAFC",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      color: "#334155",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#C7D2FE";
+                      e.currentTarget.style.backgroundColor = "#EEF2FF";
+                      e.currentTarget.style.color = "#4F46E5";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "#F1F5F9";
+                      e.currentTarget.style.backgroundColor = "#F8FAFC";
+                      e.currentTarget.style.color = "#334155";
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Input Type + Angle — compact two-row section */}
+          <div
+            style={{
+              borderRadius: "12px",
+              border: "1px solid #E9EEF5",
+              backgroundColor: "#ffffff",
+              padding: "14px 16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>Input Type</span>
+              <SegmentedControl
+                options={INPUT_TYPE_OPTIONS}
+                value={inputType}
+                onChange={setInputType}
+                disabled={isGenerating}
+              />
+            </div>
+            <div style={{ height: "1px", backgroundColor: "#F1F5F9" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>Angle</span>
+              <SegmentedControl
+                options={ANGLE_OPTIONS}
+                value={angle}
+                onChange={setAngle}
+                disabled={isGenerating}
+              />
+            </div>
+          </div>
+
+          {/* Episode title — minimal */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "#475569" }} htmlFor="episode-title">
+              Title <span style={{ fontWeight: 400, color: "#94A3B8" }}>(optional)</span>
+            </label>
+            <input
+              id="episode-title"
+              type="text"
+              placeholder="e.g. Naval Ravikant on wealth & happiness"
+              value={episodeTitle}
+              disabled={isGenerating}
+              onChange={(e) => setEpisodeTitle(e.target.value)}
+              style={{
+                width: "100%",
+                border: "1.5px solid #E2E8F0",
+                borderRadius: "10px",
+                padding: "10px 14px",
+                fontSize: "13px",
+                color: "#0F172A",
+                backgroundColor: "#ffffff",
+                fontFamily: "inherit",
+                outline: "none",
+                boxSizing: "border-box",
+                transition: "border-color 0.15s, box-shadow 0.15s",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#818CF8";
+                e.currentTarget.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.1)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#E2E8F0";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            />
+          </div>
+
+          {/* Generate button */}
+          <button
+            type="button"
+            disabled={isGenerateDisabled}
+            onClick={limitReached ? () => setShowUpgradeModal(true) : () => void handleGenerate()}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              width: "100%",
+              padding: "14px 24px",
+              borderRadius: "12px",
+              border: "none",
+              background: isGenerateDisabled
+                ? "linear-gradient(135deg, #A5B4FC 0%, #C4B5FD 100%)"
+                : "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+              color: "#ffffff",
+              fontWeight: 700,
+              fontSize: "15px",
+              cursor: isGenerateDisabled ? "not-allowed" : "pointer",
+              boxShadow: isGenerateDisabled ? "none" : "0 4px 20px rgba(79,70,229,0.38)",
+              transition: "all 0.2s ease",
+              letterSpacing: "0.01em",
+            }}
+            onMouseEnter={(e) => {
+              if (!isGenerateDisabled) {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 8px 28px rgba(79,70,229,0.45)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = isGenerateDisabled ? "none" : "0 4px 20px rgba(79,70,229,0.38)";
+            }}
+          >
+            <Sparkles size={16} strokeWidth={2} />
+            {isGenerating ? "Generating…" : "Generate Authority Pack"}
+          </button>
+
+          {/* Error */}
+          {errorMessage && (
+            <p style={{ fontSize: "13px", color: "#DC2626", textAlign: "center", margin: 0, lineHeight: 1.5 }}>
+              {errorMessage}
+            </p>
+          )}
+
+          {/* Limit reached */}
+          {limitReached && (
+            <div
+              style={{
+                borderRadius: "12px",
+                border: "1px solid #FDE68A",
+                backgroundColor: "#FFFBEB",
+                padding: "14px 16px",
+              }}
+            >
+              <p style={{ fontSize: "13px", fontWeight: 600, color: "#92400E", margin: "0 0 4px" }}>
+                Monthly limit reached
+                {effectiveLimit !== null ? ` — ${packsThisMonth}/${effectiveLimit} packs` : ""}
+              </p>
+              <p style={{ fontSize: "12px", color: "#B45309", margin: "0 0 12px", lineHeight: 1.5 }}>
+                Upgrade to continue generating authority content.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(true)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  border: "1px solid #FCD34D",
+                  backgroundColor: "#ffffff",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "#92400E",
+                  cursor: "pointer",
+                }}
+              >
+                View Upgrade Plans
+              </button>
+            </div>
+          )}
+        </aside>
 
         {/* ── Right panel ── */}
-        <section className="w-full md:w-[70%] p-8 relative flex items-start justify-center">
+        <section
+          style={{
+            flex: 1,
+            padding: "28px 32px",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            backgroundColor: "#F8FAFC",
+            minWidth: 0,
+          }}
+        >
           <AuthorityPackPreview
             packId={activePackId}
             isGenerating={isGenerating}
