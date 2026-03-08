@@ -433,11 +433,17 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
       });
 
       try {
-        await fetch("/api/send-email", {
+        const sendRes = await fetch("/api/send-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ to: lead.email, toName: lead.firstName, subject, body }),
         });
+        const sendData = await sendRes.json() as { success?: boolean; error?: string };
+        if (!sendRes.ok || !sendData.success) {
+          console.error(`[send-email] Failed for ${lead.email}: ${sendData.error ?? "unknown error"}`);
+          // Do NOT mark as SENT — leave in APPROVED so it can be retried
+          continue;
+        }
         await fetch(`/api/admin/leads/${lead.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -449,7 +455,8 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
           ),
         );
       } catch {
-        // continue even if one fails
+        console.error(`[send-email] Network error for ${lead.email}`);
+        // continue to next lead
       }
 
       if (i < toSend.length - 1) {
