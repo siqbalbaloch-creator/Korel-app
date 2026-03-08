@@ -124,7 +124,7 @@ export function Navbar() {
           {/* Desktop nav links */}
           <nav className="hidden lg:flex items-center" style={{ gap: "32px" }}>
             <button
-              onClick={() => handleSectionLink("how-it-works")}
+              onClick={() => handleSectionLink("why-korel")}
               style={{
                 color: "#64748B",
                 fontSize: "15px",
@@ -138,7 +138,7 @@ export function Navbar() {
               onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
               onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
             >
-              How It Works
+              Why Korel
             </button>
             <button
               onClick={() => handleSectionLink("pricing")}
@@ -429,7 +429,7 @@ export function Navbar() {
           }}
         >
           {[
-            { label: "How It Works", action: () => { handleSectionLink("how-it-works"); setMenuOpen(false); } },
+            { label: "Why Korel", action: () => { handleSectionLink("why-korel"); setMenuOpen(false); } },
             { label: "Pricing", action: () => { handleSectionLink("pricing"); setMenuOpen(false); } },
           ].map(({ label, action }) => (
             <button

@@ -2,16 +2,15 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Navbar } from "./components/navbar";
 import { Hero } from "./components/hero";
-import { HowItWorks } from "./components/how-it-works";
-import { WhatYouGet } from "./components/what-you-get";
+import { HowKorelWorks } from "./components/how-korel-works";
 import { Pricing } from "./components/pricing";
 import { WhyNotChatGPT } from "./components/WhyNotChatGPT";
 import { FAQ } from "./components/FAQ";
 import { FinalCTA } from "./components/final-cta";
 import { Footer } from "./components/footer";
-import { BlogPreviewSection } from "./components/blog-preview";
 import { ScrollOnLoad } from "./components/ScrollOnLoad";
 import { ExampleAuthorityContent } from "./components/example-authority-content";
+import { DemoAuthorityPack } from "./components/DemoAuthorityPack";
 
 export const metadata: Metadata = {
   alternates: { canonical: "https://www.usekorel.com" },
@@ -61,12 +60,11 @@ export default function MarketingPage() {
       </Suspense>
       <Navbar />
       <Hero />
+      <DemoAuthorityPack />
+      <HowKorelWorks />
       <ExampleAuthorityContent />
-      <HowItWorks />
-      <WhatYouGet />
       <WhyNotChatGPT />
       <Pricing />
-      <BlogPreviewSection />
       <FAQ />
       <FinalCTA />
       <Footer />

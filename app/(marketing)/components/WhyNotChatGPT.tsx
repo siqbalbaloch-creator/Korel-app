@@ -6,17 +6,12 @@ export function WhyNotChatGPT() {
         "Chat tools start with the prompt. Korel starts with a Strategic Authority Map — thesis, claims, evidence, objections — then generates from that structure.",
     },
     {
-      label: "Single source of truth.",
+      label: "Single source of authority.",
       detail:
-        "Every LinkedIn post, X thread, and newsletter is compiled from the same SAM. No divergent positioning across platforms.",
+        "Every LinkedIn post, X thread, and newsletter is compiled from the same authority map. No divergent positioning across platforms.",
     },
     {
-      label: "Deterministic evaluation signals.",
-      detail:
-        "Messaging Strength, Authority Consistency, and Weakness Radar are rule-based scores derived from the SAM — not opinion, not AI approximation.",
-    },
-    {
-      label: "Cross-pack consistency tracking.",
+      label: "Cross-pack consistency.",
       detail:
         "As you generate more packs, Korel tracks whether your authority positioning stays coherent over time. Chat tools have no memory of your prior work.",
     },
@@ -83,7 +78,7 @@ export function WhyNotChatGPT() {
 
         {/* Points grid */}
         <div
-          className="grid grid-cols-1 sm:grid-cols-2"
+          className="grid grid-cols-1 sm:grid-cols-3"
           style={{ gap: "20px" }}
         >
           {POINTS.map((point) => (
