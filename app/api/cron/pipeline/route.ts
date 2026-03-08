@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     query: sp.get("query") ?? undefined,
     maxResults: sp.has("maxResults") ? parseInt(sp.get("maxResults")!, 10) : undefined,
     daysBack: sp.has("daysBack") ? parseInt(sp.get("daysBack")!, 10) : undefined,
+    reprocessSkipped: sp.get("reprocessSkipped") === "true",
   };
 
   try {

@@ -9,6 +9,8 @@ export type PipelineRunOptions = {
   query?: string;
   maxResults?: number;
   daysBack?: number;
+  /** Delete SKIPPED records matching the search so they get reprocessed */
+  reprocessSkipped?: boolean;
 };
 
 export type PipelineRunSummary = {
@@ -225,6 +227,7 @@ export async function runPipeline(
   const batchSize = options?.maxResults ?? parseInt(process.env.PIPELINE_BATCH_SIZE ?? "10", 10);
   const query = options?.query ?? process.env.PIPELINE_SEARCH_QUERY ?? "founder interview startup bootstrapped SaaS";
   const daysBack = options?.daysBack ?? 7;
+  const reprocessSkipped = options?.reprocessSkipped ?? false;
 
   let processed = 0;
   let succeeded = 0;
@@ -244,7 +247,15 @@ export async function runPipeline(
     throw new Error(`YouTube search failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
-  // 2. Filter already-processed videos
+  // 2. Filter already-processed videos (optionally clearing SKIPPED ones)
+  if (reprocessSkipped) {
+    await prisma.pipelineVideo.deleteMany({
+      where: {
+        youtubeVideoId: { in: videos.map((v) => v.videoId) },
+        status: "SKIPPED",
+      },
+    });
+  }
   const existingRows = await prisma.pipelineVideo.findMany({
     where: { youtubeVideoId: { in: videos.map((v) => v.videoId) } },
     select: { youtubeVideoId: true },
