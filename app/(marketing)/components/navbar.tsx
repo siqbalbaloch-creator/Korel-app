@@ -415,13 +415,28 @@ export function Navbar() {
         </div>
       </div>
 
+      {/* Mobile backdrop */}
+      {menuOpen && (
+        <div
+          className="lg:hidden"
+          onClick={() => setMenuOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            top: "68px",
+            backgroundColor: "rgba(15, 23, 42, 0.35)",
+            zIndex: -1,
+          }}
+        />
+      )}
+
       {/* Mobile slide-down menu */}
       {menuOpen && (
         <div
           className="lg:hidden"
           style={{
             borderTop: "1px solid rgba(226, 232, 240, 0.6)",
-            backgroundColor: "rgba(255, 255, 255, 0.97)",
+            backgroundColor: "#ffffff",
             padding: "16px 24px 20px",
             display: "flex",
             flexDirection: "column",

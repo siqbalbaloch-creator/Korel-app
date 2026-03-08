@@ -459,6 +459,7 @@ export function DemoAuthorityPack() {
 
           {/* Two-column grid */}
           <div
+            className="korel-demo-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
@@ -468,6 +469,7 @@ export function DemoAuthorityPack() {
           >
             {/* ── LEFT: Transcript panel ── */}
             <div
+              className="korel-demo-card"
               style={{
                 backgroundColor: "#ffffff",
                 border: "1px solid #E2E8F0",
@@ -613,6 +615,7 @@ export function DemoAuthorityPack() {
 
             {/* ── RIGHT: Output panel ── */}
             <div
+              className="korel-demo-card"
               style={{
                 backgroundColor: "#ffffff",
                 border: phase === "done" ? "1px solid #C7D2FE" : "1px solid #E2E8F0",
@@ -1040,6 +1043,14 @@ export function DemoAuthorityPack() {
         @keyframes korel-spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        @media (max-width: 767px) {
+          .korel-demo-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .korel-demo-card {
+            height: 460px !important;
+          }
         }
       `}</style>
     </>
