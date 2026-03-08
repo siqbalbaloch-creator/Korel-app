@@ -9,6 +9,7 @@ type Lead = {
   lastName: string | null;
   email: string | null;
   emailConfidence: number | null;
+  emailSource: string | null;
   company: string;
   interviewSource: string;
   interviewTopic: string;
@@ -165,10 +166,25 @@ function LeadCard({
               </button>
             </div>
           ) : lead.email ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-medium text-neutral-700">
                 📧 {lead.email}
               </span>
+              {lead.emailSource && (
+                <span className="text-xs text-neutral-400">
+                  {lead.emailSource === "youtube_channel"
+                    ? "📺 YouTube"
+                    : lead.emailSource === "website"
+                      ? "🌐 Website"
+                      : lead.emailSource === "apollo"
+                        ? "🔍 Apollo"
+                        : lead.emailSource === "hunter"
+                          ? "🎯 Hunter"
+                          : lead.emailSource === "manual"
+                            ? "✏️ Manual"
+                            : lead.emailSource}
+                </span>
+              )}
               {lead.emailConfidence !== null && (
                 <span className={`text-xs font-medium ${confidenceColor}`}>
                   {lead.emailConfidence}%

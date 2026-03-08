@@ -32,6 +32,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   if (email !== undefined) {
     data.email = email || null;
+    if (email) data.emailSource = "manual";
   }
 
   const lead = await prisma.outreachLead.update({

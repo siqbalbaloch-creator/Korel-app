@@ -32,7 +32,7 @@ type FounderInfo = {
 type EmailResult = {
   email: string | null;
   confidence: number;
-  skipped?: boolean;
+  source: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -41,6 +41,228 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const YOUTUBE_VIDEO_ID_RE =
   /(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+
+const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+
+// ─── Source 1: YouTube channel description ────────────────────────────────────
+
+async function scrapeYouTubeChannelEmail(videoId: string): Promise<string | null> {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const videoRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet&key=${apiKey}`,
+    );
+    if (!videoRes.ok) return null;
+    const videoData = (await videoRes.json()) as {
+      items?: { snippet?: { channelId?: string } }[];
+    };
+    const channelId = videoData.items?.[0]?.snippet?.channelId;
+    if (!channelId) return null;
+
+    const channelRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/channels?id=${channelId}&part=snippet&key=${apiKey}`,
+    );
+    if (!channelRes.ok) return null;
+    const channelData = (await channelRes.json()) as {
+      items?: { snippet?: { description?: string } }[];
+    };
+    const description = channelData.items?.[0]?.snippet?.description ?? "";
+
+    const match = description.match(EMAIL_RE);
+    return match ? match[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Source 2a: Infer website URL from company name ──────────────────────────
+
+async function inferWebsiteUrl(company: string): Promise<string | null> {
+  const slug = company.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const candidates = [
+    `https://${slug}.com`,
+    `https://${slug}.io`,
+    `https://${slug}.co`,
+    `https://www.${slug}.com`,
+  ];
+
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, {
+        method: "HEAD",
+        signal: AbortSignal.timeout(3000),
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; Korel/1.0)" },
+      });
+      if (res.ok || res.status === 405) return url;
+    } catch {
+      // try next
+    }
+  }
+  return null;
+}
+
+// ─── Source 2b: Scrape website contact/about pages ───────────────────────────
+
+const INVALID_EMAIL_FRAGMENTS = [
+  "noreply",
+  "no-reply",
+  "@example.com",
+  "test@",
+  "@sentry.io",
+  "support@github",
+  "@wixpress",
+];
+
+async function scrapeWebsiteEmail(websiteUrl: string): Promise<string | null> {
+  const base = websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`;
+  const pagesToCheck = [
+    base,
+    `${base}/contact`,
+    `${base}/about`,
+    `${base}/contact-us`,
+    `${base}/about-us`,
+  ];
+
+  const isValidEmail = (email: string) =>
+    !INVALID_EMAIL_FRAGMENTS.some((f) => email.toLowerCase().includes(f));
+
+  for (const url of pagesToCheck) {
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; Korel/1.0)" },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) continue;
+      const html = await res.text();
+      const cleaned = html
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+      const emails = cleaned.match(EMAIL_RE) ?? [];
+      const valid = emails.filter(isValidEmail);
+      if (valid.length > 0) return valid[0];
+    } catch {
+      // timeout or error — try next page
+    }
+  }
+  return null;
+}
+
+// ─── Source 3: Apollo.io ─────────────────────────────────────────────────────
+
+async function findEmailApollo(
+  firstName: string,
+  lastName: string,
+  company: string,
+): Promise<{ email: string | null; confidence: number }> {
+  const apiKey = process.env.APOLLO_API_KEY;
+  if (!apiKey) return { email: null, confidence: 0 };
+
+  try {
+    const res = await fetch("https://api.apollo.io/v1/people/match", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+      },
+      body: JSON.stringify({
+        first_name: firstName,
+        last_name: lastName || "",
+        organization_name: company,
+        api_key: apiKey,
+        reveal_personal_emails: true,
+      }),
+    });
+    if (!res.ok) return { email: null, confidence: 0 };
+    const data = (await res.json()) as { person?: { email?: string } };
+    const email = data.person?.email ?? null;
+    return { email, confidence: email ? 85 : 0 };
+  } catch {
+    return { email: null, confidence: 0 };
+  }
+}
+
+// ─── Source 4: Hunter.io ─────────────────────────────────────────────────────
+
+async function findEmailHunter(
+  firstName: string,
+  lastName: string,
+  company: string,
+): Promise<{ email: string | null; confidence: number }> {
+  const apiKey = process.env.HUNTER_API_KEY;
+  if (!apiKey) return { email: null, confidence: 0 };
+
+  try {
+    const domainRes = await fetch(
+      `https://api.hunter.io/v2/domain-search?company=${encodeURIComponent(company)}&api_key=${apiKey}&limit=1`,
+    );
+    if (!domainRes.ok) return { email: null, confidence: 0 };
+    const domainData = (await domainRes.json()) as { data?: { domain?: string } };
+    const domain = domainData.data?.domain;
+    if (!domain) return { email: null, confidence: 0 };
+
+    await sleep(1000);
+
+    const params = new URLSearchParams({
+      domain,
+      first_name: firstName,
+      last_name: lastName,
+      api_key: apiKey,
+    });
+    const emailRes = await fetch(`https://api.hunter.io/v2/email-finder?${params}`);
+    if (!emailRes.ok) return { email: null, confidence: 0 };
+    const emailData = (await emailRes.json()) as {
+      data?: { email?: string; score?: number };
+    };
+    return {
+      email: emailData.data?.email ?? null,
+      confidence: emailData.data?.score ?? 0,
+    };
+  } catch {
+    return { email: null, confidence: 0 };
+  }
+}
+
+// ─── Waterfall findEmail ──────────────────────────────────────────────────────
+
+async function findEmail(
+  firstName: string,
+  lastName: string,
+  company: string,
+  youtubeVideoId?: string,
+  websiteUrl?: string,
+): Promise<EmailResult> {
+  // Source 1: YouTube channel description
+  if (youtubeVideoId) {
+    const email = await scrapeYouTubeChannelEmail(youtubeVideoId);
+    if (email) return { email, confidence: 95, source: "youtube_channel" };
+    await sleep(500);
+  }
+
+  // Source 2: Website (infer URL if not provided)
+  const effectiveWebsite = websiteUrl || (await inferWebsiteUrl(company));
+  if (effectiveWebsite) {
+    const email = await scrapeWebsiteEmail(effectiveWebsite);
+    if (email) return { email, confidence: 90, source: "website" };
+    await sleep(500);
+  }
+
+  // Source 3: Apollo.io
+  if (process.env.APOLLO_API_KEY) {
+    const result = await findEmailApollo(firstName, lastName, company);
+    if (result.email) return { email: result.email, confidence: result.confidence, source: "apollo" };
+    await sleep(500);
+  }
+
+  // Source 4: Hunter.io
+  if (process.env.HUNTER_API_KEY) {
+    const result = await findEmailHunter(firstName, lastName, company);
+    if (result.email) return { email: result.email, confidence: result.confidence, source: "hunter" };
+  }
+
+  return { email: null, confidence: 0, source: "none" };
+}
 
 // ─── Extract founder info via GPT-4o-mini ─────────────────────────────────────
 
@@ -90,48 +312,6 @@ Return ONLY the JSON object. No explanation. No markdown.`;
   };
 }
 
-// ─── Find email via Hunter.io ─────────────────────────────────────────────────
-
-async function findEmail(
-  firstName: string,
-  lastName: string,
-  company: string,
-): Promise<EmailResult> {
-  const apiKey = process.env.HUNTER_API_KEY;
-  if (!apiKey) return { email: null, confidence: 0, skipped: true };
-
-  try {
-    const domainRes = await fetch(
-      `https://api.hunter.io/v2/domain-search?company=${encodeURIComponent(company)}&api_key=${apiKey}&limit=1`,
-    );
-    if (!domainRes.ok) return { email: null, confidence: 0 };
-    const domainData = (await domainRes.json()) as { data?: { domain?: string } };
-    const domain = domainData.data?.domain;
-    if (!domain) return { email: null, confidence: 0 };
-
-    await sleep(1000);
-
-    const params = new URLSearchParams({
-      domain,
-      first_name: firstName,
-      last_name: lastName,
-      api_key: apiKey,
-    });
-    const emailRes = await fetch(`https://api.hunter.io/v2/email-finder?${params}`);
-    if (!emailRes.ok) return { email: null, confidence: 0 };
-    const emailData = (await emailRes.json()) as {
-      data?: { email?: string; score?: number };
-    };
-
-    return {
-      email: emailData.data?.email ?? null,
-      confidence: emailData.data?.score ?? 0,
-    };
-  } catch {
-    return { email: null, confidence: 0 };
-  }
-}
-
 // ─── Create lead from a manually generated pack ───────────────────────────────
 
 export async function createLeadFromPack(
@@ -141,7 +321,6 @@ export async function createLeadFromPack(
     const { transcript, packId, videoTitle, youtubeUrl, linkedinPost, twitterPost, newsletter } =
       options;
 
-    // Derive a stable unique ID for this pack
     const matchedVideoId = youtubeUrl ? YOUTUBE_VIDEO_ID_RE.exec(youtubeUrl)?.[1] : null;
     const youtubeVideoId = matchedVideoId ?? `pack_${packId}`;
 
@@ -152,12 +331,7 @@ export async function createLeadFromPack(
     if (existing) return;
 
     // Extract founder info from the transcript
-    const founderInfo = await extractFounderInfo(
-      transcript,
-      videoTitle ?? "",
-      "",
-    );
-
+    const founderInfo = await extractFounderInfo(transcript, videoTitle ?? "", "");
     if (!founderInfo.isFounderInterview) return;
 
     // Create PipelineVideo record
@@ -175,20 +349,16 @@ export async function createLeadFromPack(
       },
     });
 
-    // Find email via Hunter.io
+    // Find email via waterfall
     const emailResult = await findEmail(
       founderInfo.firstName,
       founderInfo.lastName,
       founderInfo.company,
+      matchedVideoId ?? undefined,
     );
 
-    const leadStatus = emailResult.skipped
-      ? "PENDING_EMAIL"
-      : emailResult.email
-        ? "EMAIL_FOUND"
-        : "NO_EMAIL";
+    const leadStatus = emailResult.email ? "EMAIL_FOUND" : "NO_EMAIL";
 
-    // Create outreach lead
     await prisma.outreachLead.create({
       data: {
         pipelineVideoId: pv.id,
@@ -196,6 +366,7 @@ export async function createLeadFromPack(
         lastName: founderInfo.lastName || null,
         email: emailResult.email ?? null,
         emailConfidence: emailResult.confidence > 0 ? emailResult.confidence : null,
+        emailSource: emailResult.email ? emailResult.source : null,
         company: founderInfo.company,
         interviewSource: youtubeUrl ? "YouTube" : "Manual",
         interviewTopic: founderInfo.interviewTopic,
@@ -219,12 +390,18 @@ export async function createLeadFromPack(
   }
 }
 
-// ─── Cron: retry email lookup for PENDING_EMAIL leads ────────────────────────
+// ─── Cron: retry email lookup for NO_EMAIL / PENDING_EMAIL leads ──────────────
 
 export async function runPipeline(): Promise<PipelineRunSummary> {
   const pendingLeads = await prisma.outreachLead.findMany({
-    where: { status: "PENDING_EMAIL" },
-    select: { id: true, firstName: true, lastName: true, company: true },
+    where: { status: { in: ["PENDING_EMAIL", "NO_EMAIL"] } },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      company: true,
+      pipelineVideo: { select: { youtubeVideoId: true } },
+    },
     take: 20,
   });
 
@@ -233,13 +410,22 @@ export async function runPipeline(): Promise<PipelineRunSummary> {
 
   for (const lead of pendingLeads) {
     retried++;
-    const result = await findEmail(lead.firstName, lead.lastName ?? "", lead.company);
+    const videoId = lead.pipelineVideo.youtubeVideoId;
+    const realVideoId = videoId.startsWith("pack_") ? undefined : videoId;
+    const result = await findEmail(
+      lead.firstName,
+      lead.lastName ?? "",
+      lead.company,
+      realVideoId,
+    );
+
     if (result.email) {
       await prisma.outreachLead.update({
         where: { id: lead.id },
         data: {
           email: result.email,
           emailConfidence: result.confidence > 0 ? result.confidence : null,
+          emailSource: result.source,
           status: "EMAIL_FOUND",
         },
       });

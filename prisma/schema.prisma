@@ -321,6 +321,7 @@ model OutreachLead {
   lastName         String?
   email            String?
   emailConfidence  Int?
+  emailSource      String?   // youtube_channel | website | apollo | hunter | manual
   company          String
   interviewSource  String
   interviewTopic   String
