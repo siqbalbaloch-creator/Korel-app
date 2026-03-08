@@ -201,6 +201,7 @@ export default function NewPackPage() {
     abortControllerRef.current = controller;
 
     setIsGenerating(true);
+    setActivePackId(null);
     setErrorMessage("");
 
     try {
