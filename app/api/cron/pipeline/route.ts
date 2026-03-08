@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { runPipeline } from "@/lib/pipeline/pipeline.service";
 
 // Called daily by Vercel Cron — protected by CRON_SECRET
-// Optional query params: ?query=...&maxResults=N&daysBack=N
+// Retries Hunter.io email lookup for any leads stuck in PENDING_EMAIL
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
   const secret = process.env.CRON_SECRET;
@@ -11,16 +12,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const sp = request.nextUrl.searchParams;
-  const options = {
-    query: sp.get("query") ?? undefined,
-    maxResults: sp.has("maxResults") ? parseInt(sp.get("maxResults")!, 10) : undefined,
-    daysBack: sp.has("daysBack") ? parseInt(sp.get("daysBack")!, 10) : undefined,
-    reprocessSkipped: sp.get("reprocessSkipped") === "true",
-  };
-
   try {
-    const summary = await runPipeline(options);
+    const summary = await runPipeline();
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),

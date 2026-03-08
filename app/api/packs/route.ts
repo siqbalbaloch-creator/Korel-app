@@ -24,6 +24,7 @@ import { guardAsync } from "@/lib/runtimeGuard";
 import { type InputType, VALID_INPUT_TYPES, type AngleType, VALID_ANGLES, type AuthorityProfileContext } from "@/ai/prompts";
 import { getPlanConfig } from "@/lib/plans";
 import { getCurrentUsagePeriod } from "@/lib/usagePeriod";
+import { createLeadFromPack } from "@/lib/pipeline/pipeline.service";
 
 export const runtime = "nodejs";
 
@@ -215,10 +216,12 @@ export async function POST(request: Request) {
     let titleFromUser = "";
     let inputType: InputType = "INTERVIEW";
     let angle: AngleType = "THOUGHT_LEADERSHIP";
+    let youtubeUrl = "";
     try {
-      const body = (await request.json()) as { input?: string; title?: string; inputType?: string; angle?: string };
+      const body = (await request.json()) as { input?: string; title?: string; inputType?: string; angle?: string; youtubeUrl?: string };
       input = typeof body.input === "string" ? body.input.trim() : "";
       titleFromUser = typeof body.title === "string" ? body.title.trim() : "";
+      youtubeUrl = typeof body.youtubeUrl === "string" ? body.youtubeUrl.trim() : "";
       const rawType = typeof body.inputType === "string" ? body.inputType.trim() : "";
       inputType = VALID_INPUT_TYPES.has(rawType as InputType)
         ? (rawType as InputType)
@@ -441,6 +444,24 @@ export async function POST(request: Request) {
     }
     logger.info("generation.persisted", { userId, packId: created.id, qualityScore: totalScore });
     logStage("generation.completed");
+
+    // Fire-and-forget: create outreach lead in pipeline for INTERVIEW packs
+    if (inputType === "INTERVIEW") {
+      const effectiveYoutubeUrl =
+        youtubeUrl || (isUrl ? input : "");
+      const linkedinPost = structuredPack.highLeveragePosts.linkedinPosts[0] ?? "";
+      const twitterPost = structuredPack.highLeveragePosts.twitterThread.join("\n\n");
+      const newsletter = structuredPack.highLeveragePosts.newsletterSummary;
+      void createLeadFromPack({
+        transcript: isUrl ? "" : input,
+        packId: created.id,
+        videoTitle: finalTitle,
+        youtubeUrl: effectiveYoutubeUrl || undefined,
+        linkedinPost,
+        twitterPost,
+        newsletter,
+      });
+    }
 
     const [packs, planInfo] = await Promise.all([
       loadUserPacks(userId),

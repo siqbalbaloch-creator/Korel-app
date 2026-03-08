@@ -1,31 +1,23 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { openai } from "@/lib/openai";
-import { generateAuthorityPack, fetchYouTubeTranscriptDebug } from "@/lib/packGenerationService";
+import { logger } from "@/lib/logger";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type PipelineRunOptions = {
-  query?: string;
-  maxResults?: number;
-  daysBack?: number;
-  /** Delete SKIPPED records matching the search so they get reprocessed */
-  reprocessSkipped?: boolean;
-};
-
 export type PipelineRunSummary = {
-  processed: number;
-  succeeded: number;
-  failed: number;
-  skipped: number;
-  alreadySeen: number;
+  retried: number;
+  emailsFound: number;
 };
 
-type YouTubeVideo = {
-  videoId: string;
-  title: string;
-  channelTitle: string;
-  publishedAt: string;
+export type CreateLeadFromPackOptions = {
+  transcript: string;
+  packId: string;
+  videoTitle?: string;
+  youtubeUrl?: string;
+  linkedinPost: string;
+  twitterPost: string;
+  newsletter: string;
 };
 
 type FounderInfo = {
@@ -35,12 +27,6 @@ type FounderInfo = {
   interviewTopic: string;
   specificMoment: string;
   isFounderInterview: boolean;
-};
-
-type ContentPack = {
-  linkedinPost: string;
-  twitterPost: string;
-  newsletter: string;
 };
 
 type EmailResult = {
@@ -53,62 +39,10 @@ type EmailResult = {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// ─── 4a — YouTube search ──────────────────────────────────────────────────────
+const YOUTUBE_VIDEO_ID_RE =
+  /(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
 
-async function searchYouTube(
-  query: string,
-  maxResults: number,
-  publishedAfter: string,
-): Promise<YouTubeVideo[]> {
-  const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey) throw new Error("YOUTUBE_API_KEY not configured");
-
-  const url = new URL("https://www.googleapis.com/youtube/v3/search");
-  url.searchParams.set("part", "snippet");
-  url.searchParams.set("q", query);
-  url.searchParams.set("type", "video");
-  url.searchParams.set("maxResults", String(Math.min(maxResults, 50)));
-  url.searchParams.set("publishedAfter", publishedAfter);
-  url.searchParams.set("videoDuration", "long"); // >20 min
-  url.searchParams.set("order", "relevance");
-  url.searchParams.set("relevanceLanguage", "en");
-  url.searchParams.set("key", apiKey);
-
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`YouTube search failed (${res.status}): ${body.slice(0, 200)}`);
-  }
-  const data = (await res.json()) as {
-    items?: {
-      id: { videoId: string };
-      snippet: { title: string; channelTitle: string; publishedAt: string };
-    }[];
-  };
-
-  return (data.items ?? []).map((item) => ({
-    videoId: item.id.videoId,
-    title: item.snippet.title,
-    channelTitle: item.snippet.channelTitle,
-    publishedAt: item.snippet.publishedAt,
-  }));
-}
-
-// ─── 4b — Fetch transcript ────────────────────────────────────────────────────
-
-async function fetchTranscriptForVideo(videoId: string): Promise<string | null> {
-  try {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    const transcript = await fetchYouTubeTranscriptDebug(url);
-    if (!transcript || transcript.trim().length < 300) return null;
-    // Limit to first 15000 chars — enough context for AI extraction
-    return transcript.slice(0, 15000);
-  } catch {
-    return null;
-  }
-}
-
-// ─── 4c — Extract founder info ───────────────────────────────────────────────
+// ─── Extract founder info via GPT-4o-mini ─────────────────────────────────────
 
 async function extractFounderInfo(
   transcript: string,
@@ -156,23 +90,7 @@ Return ONLY the JSON object. No explanation. No markdown.`;
   };
 }
 
-// ─── 4d — Generate content pack ───────────────────────────────────────────────
-
-async function generateContentPack(transcript: string): Promise<ContentPack> {
-  const pack = await generateAuthorityPack(transcript, {
-    inputType: "INTERVIEW",
-    angle: "THOUGHT_LEADERSHIP",
-    profile: null,
-  });
-
-  const linkedinPost = pack.highLeveragePosts.linkedinPosts[0] ?? "";
-  const twitterPost = pack.highLeveragePosts.twitterThread.join("\n\n");
-  const newsletter = pack.highLeveragePosts.newsletterSummary;
-
-  return { linkedinPost, twitterPost, newsletter };
-}
-
-// ─── 4e — Find email via Hunter.io ───────────────────────────────────────────
+// ─── Find email via Hunter.io ─────────────────────────────────────────────────
 
 async function findEmail(
   firstName: string,
@@ -183,7 +101,6 @@ async function findEmail(
   if (!apiKey) return { email: null, confidence: 0, skipped: true };
 
   try {
-    // Step 1: domain search
     const domainRes = await fetch(
       `https://api.hunter.io/v2/domain-search?company=${encodeURIComponent(company)}&api_key=${apiKey}&limit=1`,
     );
@@ -194,7 +111,6 @@ async function findEmail(
 
     await sleep(1000);
 
-    // Step 2: email finder
     const params = new URLSearchParams({
       domain,
       first_name: firstName,
@@ -216,161 +132,126 @@ async function findEmail(
   }
 }
 
-// ─── 4f — Main orchestrator ───────────────────────────────────────────────────
+// ─── Create lead from a manually generated pack ───────────────────────────────
 
-export async function runPipeline(
-  options?: PipelineRunOptions,
-): Promise<PipelineRunSummary> {
-  const startTime = Date.now();
-  const MAX_RUNTIME_MS = 50_000; // 50s — Vercel hobby limit is 60s
-
-  const batchSize = options?.maxResults ?? parseInt(process.env.PIPELINE_BATCH_SIZE ?? "10", 10);
-  const query = options?.query ?? process.env.PIPELINE_SEARCH_QUERY ?? "founder interview startup bootstrapped SaaS";
-  const daysBack = options?.daysBack ?? 7;
-  const reprocessSkipped = options?.reprocessSkipped ?? false;
-
-  let processed = 0;
-  let succeeded = 0;
-  let failed = 0;
-  let skipped = 0;
-  let alreadySeen = 0;
-
-  // 1. Search YouTube
-  const publishedAfter = new Date(
-    Date.now() - daysBack * 24 * 60 * 60 * 1000,
-  ).toISOString();
-
-  let videos: YouTubeVideo[];
+export async function createLeadFromPack(
+  options: CreateLeadFromPackOptions,
+): Promise<void> {
   try {
-    videos = await searchYouTube(query, batchSize, publishedAfter);
-  } catch (err) {
-    throw new Error(`YouTube search failed: ${err instanceof Error ? err.message : String(err)}`);
-  }
+    const { transcript, packId, videoTitle, youtubeUrl, linkedinPost, twitterPost, newsletter } =
+      options;
 
-  // 2. Filter already-processed videos (optionally clearing SKIPPED ones)
-  if (reprocessSkipped) {
-    await prisma.pipelineVideo.deleteMany({
-      where: {
-        youtubeVideoId: { in: videos.map((v) => v.videoId) },
-        status: "SKIPPED",
-      },
+    // Derive a stable unique ID for this pack
+    const matchedVideoId = youtubeUrl ? YOUTUBE_VIDEO_ID_RE.exec(youtubeUrl)?.[1] : null;
+    const youtubeVideoId = matchedVideoId ?? `pack_${packId}`;
+
+    // Skip if already processed (e.g. pack regeneration)
+    const existing = await prisma.pipelineVideo.findUnique({
+      where: { youtubeVideoId },
     });
-  }
-  const existingRows = await prisma.pipelineVideo.findMany({
-    where: { youtubeVideoId: { in: videos.map((v) => v.videoId) } },
-    select: { youtubeVideoId: true },
-  });
-  const existingSet = new Set(existingRows.map((r) => r.youtubeVideoId));
-  const newVideos = videos.filter((v) => !existingSet.has(v.videoId));
-  alreadySeen = videos.length - newVideos.length;
+    if (existing) return;
 
-  // 3. Process each video
-  for (const video of newVideos) {
-    if (Date.now() - startTime > MAX_RUNTIME_MS) break;
+    // Extract founder info from the transcript
+    const founderInfo = await extractFounderInfo(
+      transcript,
+      videoTitle ?? "",
+      "",
+    );
 
-    processed++;
+    if (!founderInfo.isFounderInterview) return;
 
+    // Create PipelineVideo record
     const pv = await prisma.pipelineVideo.create({
       data: {
-        youtubeVideoId: video.videoId,
-        youtubeUrl: `https://www.youtube.com/watch?v=${video.videoId}`,
-        title: video.title,
-        channelName: video.channelTitle,
-        publishedAt: new Date(video.publishedAt),
-        status: "DISCOVERED",
+        youtubeVideoId,
+        youtubeUrl: youtubeUrl ?? "",
+        title: videoTitle ?? founderInfo.company,
+        channelName: "",
+        publishedAt: new Date(),
+        transcript: transcript.slice(0, 15000),
+        transcriptFetched: true,
+        status: "PACK_GENERATED",
+        processedAt: new Date(),
       },
     });
 
-    try {
-      // Fetch transcript
-      const transcript = await fetchTranscriptForVideo(video.videoId);
-      await sleep(2000);
+    // Find email via Hunter.io
+    const emailResult = await findEmail(
+      founderInfo.firstName,
+      founderInfo.lastName,
+      founderInfo.company,
+    );
 
-      if (!transcript) {
-        await prisma.pipelineVideo.update({
-          where: { id: pv.id },
-          data: { status: "SKIPPED", errorMessage: "Transcript unavailable or too short" },
-        });
-        skipped++;
-        continue;
-      }
+    const leadStatus = emailResult.skipped
+      ? "PENDING_EMAIL"
+      : emailResult.email
+        ? "EMAIL_FOUND"
+        : "NO_EMAIL";
 
-      await prisma.pipelineVideo.update({
-        where: { id: pv.id },
-        data: { transcript, transcriptFetched: true, status: "TRANSCRIPT_FETCHED" },
-      });
+    // Create outreach lead
+    await prisma.outreachLead.create({
+      data: {
+        pipelineVideoId: pv.id,
+        firstName: founderInfo.firstName,
+        lastName: founderInfo.lastName || null,
+        email: emailResult.email ?? null,
+        emailConfidence: emailResult.confidence > 0 ? emailResult.confidence : null,
+        company: founderInfo.company,
+        interviewSource: youtubeUrl ? "YouTube" : "Manual",
+        interviewTopic: founderInfo.interviewTopic,
+        specificMoment: founderInfo.specificMoment,
+        linkedinPost,
+        twitterPost,
+        newsletter,
+        status: leadStatus,
+      },
+    });
 
-      // Extract founder info
-      const founderInfo = await extractFounderInfo(transcript, video.title, video.channelTitle);
-      await sleep(2000);
+    await prisma.pipelineVideo.update({
+      where: { id: pv.id },
+      data: { status: "READY" },
+    });
+  } catch (err) {
+    logger.error("pipeline.createLeadFromPack.failed", {
+      packId: options.packId,
+      err: String(err),
+    });
+  }
+}
 
-      if (!founderInfo.isFounderInterview) {
-        await prisma.pipelineVideo.update({
-          where: { id: pv.id },
-          data: { status: "SKIPPED", errorMessage: "Not identified as a founder interview" },
-        });
-        skipped++;
-        continue;
-      }
+// ─── Cron: retry email lookup for PENDING_EMAIL leads ────────────────────────
 
-      // Generate content pack
-      const pack = await generateContentPack(transcript);
-      await sleep(2000);
+export async function runPipeline(): Promise<PipelineRunSummary> {
+  const pendingLeads = await prisma.outreachLead.findMany({
+    where: { status: "PENDING_EMAIL" },
+    select: { id: true, firstName: true, lastName: true, company: true },
+    take: 20,
+  });
 
-      await prisma.pipelineVideo.update({
-        where: { id: pv.id },
-        data: { status: "PACK_GENERATED", processedAt: new Date() },
-      });
+  let retried = 0;
+  let emailsFound = 0;
 
-      // Find email
-      const emailResult = await findEmail(
-        founderInfo.firstName,
-        founderInfo.lastName,
-        founderInfo.company,
-      );
-      if (process.env.HUNTER_API_KEY) await sleep(1000);
-
-      const leadStatus = emailResult.skipped
-        ? "PENDING_EMAIL"
-        : emailResult.email
-          ? "EMAIL_FOUND"
-          : "NO_EMAIL";
-
-      // Create outreach lead
-      await prisma.outreachLead.create({
+  for (const lead of pendingLeads) {
+    retried++;
+    const result = await findEmail(lead.firstName, lead.lastName ?? "", lead.company);
+    if (result.email) {
+      await prisma.outreachLead.update({
+        where: { id: lead.id },
         data: {
-          pipelineVideoId: pv.id,
-          firstName: founderInfo.firstName,
-          lastName: founderInfo.lastName || null,
-          email: emailResult.email ?? null,
-          emailConfidence: emailResult.confidence > 0 ? emailResult.confidence : null,
-          company: founderInfo.company,
-          interviewSource: video.channelTitle,
-          interviewTopic: founderInfo.interviewTopic,
-          specificMoment: founderInfo.specificMoment,
-          linkedinPost: pack.linkedinPost,
-          twitterPost: pack.twitterPost,
-          newsletter: pack.newsletter,
-          status: leadStatus,
+          email: result.email,
+          emailConfidence: result.confidence > 0 ? result.confidence : null,
+          status: "EMAIL_FOUND",
         },
       });
-
-      await prisma.pipelineVideo.update({
-        where: { id: pv.id },
-        data: { status: "READY" },
+      emailsFound++;
+    } else {
+      await prisma.outreachLead.update({
+        where: { id: lead.id },
+        data: { status: "NO_EMAIL" },
       });
-
-      succeeded++;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      await prisma.pipelineVideo.update({
-        where: { id: pv.id },
-        data: { status: "FAILED", errorMessage: errorMessage.slice(0, 500) },
-      });
-      failed++;
-      await sleep(2000);
     }
+    await sleep(1200);
   }
 
-  return { processed, succeeded, failed, skipped, alreadySeen };
+  return { retried, emailsFound };
 }
