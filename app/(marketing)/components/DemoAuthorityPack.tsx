@@ -396,6 +396,7 @@ export function DemoAuthorityPack() {
   const [activeTab, setActiveTab] = useState<Tab>("linkedin");
   const [showModal, setShowModal] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [transcriptValue, setTranscriptValue] = useState(SAMPLE_TRANSCRIPT);
 
   const handleCopy = useCallback((text: string, key: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -448,65 +449,13 @@ export function DemoAuthorityPack() {
       {showModal && <DemoPaywallModal onClose={() => setShowModal(false)} />}
 
       <section
+        id="live-demo"
         style={{
           backgroundColor: "#F6F7FB",
-          padding: "88px 24px",
+          padding: "28px 24px 88px",
         }}
       >
         <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-
-          {/* Section header */}
-          <div style={{ textAlign: "center", marginBottom: "52px" }}>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                backgroundColor: "#EEF2FF",
-                border: "1px solid #C7D2FE",
-                borderRadius: "100px",
-                padding: "5px 14px",
-                marginBottom: "20px",
-              }}
-            >
-              <Sparkles size={12} color="#4F46E5" />
-              <span
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: "#4F46E5",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                Live Demo — No Sign Up Needed
-              </span>
-            </div>
-            <h2
-              style={{
-                fontSize: "clamp(28px, 4vw, 40px)",
-                fontWeight: 800,
-                color: "#0F172A",
-                lineHeight: 1.15,
-                marginBottom: "14px",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Watch a transcript become<br />
-              <span style={{ color: "#4F46E5" }}>authority content</span> in seconds
-            </h2>
-            <p
-              style={{
-                fontSize: "17px",
-                color: "#64748B",
-                maxWidth: "460px",
-                margin: "0 auto",
-                lineHeight: 1.65,
-              }}
-            >
-              Generate this sample — or paste your own transcript.{" "}
-              <span style={{ color: "#94A3B8" }}>No signup required.</span>
-            </p>
-          </div>
 
           {/* Two-column grid */}
           <div
@@ -532,7 +481,7 @@ export function DemoAuthorityPack() {
             >
               <CardHeader
                 icon={Sparkles}
-                title="Your Transcript"
+                title="Paste a Transcript"
                 badge={
                   <span
                     style={{
@@ -550,10 +499,33 @@ export function DemoAuthorityPack() {
                 }
               />
 
+              {/* Load sample button */}
+              <div style={{ padding: "10px 20px 0", flexShrink: 0 }}>
+                <button
+                  onClick={() => setTranscriptValue(SAMPLE_TRANSCRIPT)}
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    color: "#4F46E5",
+                    backgroundColor: "#EEF2FF",
+                    border: "1px solid #E0E7FF",
+                    borderRadius: "7px",
+                    padding: "5px 12px",
+                    cursor: "pointer",
+                    transition: "background-color 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#E0E7FF"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#EEF2FF"; }}
+                >
+                  Load Sample Transcript
+                </button>
+              </div>
+
               {/* Textarea — grows to fill space */}
-              <div style={{ flex: 1, padding: "16px 20px 0", display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <div style={{ flex: 1, padding: "10px 20px 0", display: "flex", flexDirection: "column", minHeight: 0 }}>
                 <textarea
-                  defaultValue={SAMPLE_TRANSCRIPT}
+                  value={transcriptValue}
+                  onChange={(e) => setTranscriptValue(e.target.value)}
                   style={{
                     flex: 1,
                     resize: "none",
@@ -668,7 +640,7 @@ export function DemoAuthorityPack() {
 
               <CardHeader
                 icon={Zap}
-                title="Authority Pack"
+                title="Generated Content Pack"
                 badge={
                   phase === "done" ? (
                     <span
