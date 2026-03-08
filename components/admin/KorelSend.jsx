@@ -10,8 +10,31 @@ import { useState, useEffect, useRef } from "react";
 import { korelAPI, KOREL_BASE, MOCK_PACKS } from "./korelAPI";
 import { sendViaGmail, buildEmailBody } from "./gmailSender";
 
-const DEFAULT_SUBJECT = "Your content pack from Korel is ready 🎙️";
-const DEFAULT_NOTE = `Hi {{first_name}},\n\nHere's your content pack generated from your recent interview — ready to schedule across your channels this week.\n\nLet me know if you'd like any edits!`;
+const DEFAULT_SUBJECT = "I turned your {{interview_source}} interview into content";
+const DEFAULT_NOTE = `Hi {{first_name}},
+
+I recently watched your interview on {{interview_source}} about {{interview_topic}} — really enjoyed the part where {{specific_moment}}.
+
+I'm building a small tool called Korel that turns founder interviews and conversations into structured authority content (LinkedIn posts, X threads, newsletters, etc.).
+
+Out of curiosity, I pasted a transcript from your interview into Korel and it generated a full content pack from it.
+
+Here's one example it produced:
+
+{{linkedin_post_preview}}
+
+It also generated:
+• X thread
+• Newsletter outline
+• Strategic hooks from the interview
+
+You can try the demo here (no signup required): {{demo_link}}
+
+If you're creating content from interviews or podcasts, I'd love to know if this is useful or completely useless.
+
+Either way, your interview was great.
+
+— {{your_name}}`;
 
 function parseCSV(text) {
   const lines = text.trim().split("\n");
@@ -48,6 +71,11 @@ export default function KorelSend({ initialPack, onSendSuccess, adminOnly = true
   const [recipName, setRecipName] = useState(initialPack?.client_name || "");
   const [recipEmail, setRecipEmail] = useState(initialPack?.client_email || "");
   const [recipCompany, setRecipCompany] = useState(initialPack?.company || "");
+  const [recipInterviewSource, setRecipInterviewSource] = useState("");
+  const [recipInterviewTopic, setRecipInterviewTopic] = useState("");
+  const [recipSpecificMoment, setRecipSpecificMoment] = useState("");
+  const [recipDemoLink, setRecipDemoLink] = useState("https://usekorel.com/demo");
+  const [recipYourName] = useState("Saqib");
   const [subject, setSubject] = useState(DEFAULT_SUBJECT);
   const [note, setNote] = useState(DEFAULT_NOTE);
   const [incLinkedin, setIncLinkedin] = useState(true);
@@ -112,7 +140,7 @@ export default function KorelSend({ initialPack, onSendSuccess, adminOnly = true
         prev.map(async (s) => {
           if (s.status === "scheduled" && new Date(s.sendAt) <= now) {
             try {
-              const body = buildEmailBody({ note: DEFAULT_NOTE, linkedinPost: s.linkedin, twitterPost: s.twitter, newsletter: s.newsletter, firstName: s.recipName, company: s.recipCompany });
+              const body = buildEmailBody({ note: DEFAULT_NOTE, linkedinPost: s.linkedin, twitterPost: s.twitter, newsletter: s.newsletter, firstName: s.recipName, company: s.recipCompany, interviewSource: s.interviewSource || "", interviewTopic: s.interviewTopic || "", specificMoment: s.specificMoment || "", demoLink: s.demoLink || "https://usekorel.com/demo", yourName: "Saqib" });
               await sendViaGmail({ to: s.recipEmail, subject: s.subject, body });
               setHistory((h) => [{ name: s.recipName, email: s.recipEmail, subject: s.subject, status: "sent", time: new Date().toLocaleString(), type: "scheduled" }, ...h]);
               return { ...s, status: "sent" };
@@ -185,8 +213,8 @@ export default function KorelSend({ initialPack, onSendSuccess, adminOnly = true
     if (!linkedin && !twitter && !newsletter) { showToast("⚠️ Paste at least one content piece", "warn"); return; }
     setSending(true);
     try {
-      const sub = subject.replace(/\{\{first_name\}\}/g, recipName).replace(/\{\{company\}\}/g, recipCompany);
-      const body = buildEmailBody({ note, linkedinPost: linkedin, twitterPost: twitter, newsletter, firstName: recipName, company: recipCompany, include: { linkedin: incLinkedin, twitter: incTwitter, newsletter: incNewsletter } });
+      const sub = subject.replace(/\{\{first_name\}\}/g, recipName).replace(/\{\{company\}\}/g, recipCompany).replace(/\{\{interview_source\}\}/g, recipInterviewSource || "the interview");
+      const body = buildEmailBody({ note, linkedinPost: linkedin, twitterPost: twitter, newsletter, firstName: recipName, company: recipCompany, interviewSource: recipInterviewSource, interviewTopic: recipInterviewTopic, specificMoment: recipSpecificMoment, demoLink: recipDemoLink, yourName: recipYourName, include: { linkedin: incLinkedin, twitter: incTwitter, newsletter: incNewsletter } });
       await sendViaGmail({ to: recipEmail, subject: sub, body });
       setHistory((h) => [{ name: recipName, email: recipEmail, subject: sub, status: "sent", time: new Date().toLocaleString(), type: "single" }, ...h]);
       showToast(`✅ Sent to ${recipEmail}!`, "success");
@@ -199,8 +227,8 @@ export default function KorelSend({ initialPack, onSendSuccess, adminOnly = true
   }
 
   function doPreview() {
-    const sub = subject.replace(/\{\{first_name\}\}/g, recipName || "{{first_name}}").replace(/\{\{company\}\}/g, recipCompany);
-    const body = buildEmailBody({ note, linkedinPost: linkedin, twitterPost: twitter, newsletter, firstName: recipName || "{{first_name}}", company: recipCompany, include: { linkedin: incLinkedin, twitter: incTwitter, newsletter: incNewsletter } });
+    const sub = subject.replace(/\{\{first_name\}\}/g, recipName || "{{first_name}}").replace(/\{\{company\}\}/g, recipCompany).replace(/\{\{interview_source\}\}/g, recipInterviewSource || "{{interview_source}}");
+    const body = buildEmailBody({ note, linkedinPost: linkedin, twitterPost: twitter, newsletter, firstName: recipName || "{{first_name}}", company: recipCompany, interviewSource: recipInterviewSource, interviewTopic: recipInterviewTopic, specificMoment: recipSpecificMoment, demoLink: recipDemoLink, yourName: recipYourName, include: { linkedin: incLinkedin, twitter: incTwitter, newsletter: incNewsletter } });
     setPreview({ to: `${recipName} <${recipEmail}>`, subject: sub, body });
   }
 
@@ -216,8 +244,8 @@ export default function KorelSend({ initialPack, onSendSuccess, adminOnly = true
       const name = r.first_name || r.name || "";
       setRecipients((prev) => prev.map((p, idx) => idx === i ? { ...p, status: "sending" } : p));
       try {
-        const sub = bulkSubject.replace(/\{\{first_name\}\}/g, name).replace(/\{\{company\}\}/g, r.company || "");
-        const body = buildEmailBody({ note: DEFAULT_NOTE, linkedinPost: r.linkedin_post || bulkLinkedin, twitterPost: r.twitter_post || bulkTwitter, newsletter: r.newsletter || bulkNewsletter, firstName: name, company: r.company || "" });
+        const sub = bulkSubject.replace(/\{\{first_name\}\}/g, name).replace(/\{\{company\}\}/g, r.company || "").replace(/\{\{interview_source\}\}/g, r.interview_source || "the interview");
+        const body = buildEmailBody({ note: DEFAULT_NOTE, linkedinPost: r.linkedin_post || bulkLinkedin, twitterPost: r.twitter_post || bulkTwitter, newsletter: r.newsletter || bulkNewsletter, firstName: name, company: r.company || "", interviewSource: r.interview_source || "", interviewTopic: r.interview_topic || "", specificMoment: r.specific_moment || "", demoLink: r.demo_link || "https://usekorel.com/demo", yourName: r.your_name || "Saqib" });
         await sendViaGmail({ to: r.email, subject: sub, body });
         setRecipients((prev) => prev.map((p, idx) => idx === i ? { ...p, status: "sent" } : p));
         setHistory((h) => [{ name, email: r.email, subject: sub, status: "sent", time: new Date().toLocaleString(), type: "bulk" }, ...h]);
@@ -237,7 +265,7 @@ export default function KorelSend({ initialPack, onSendSuccess, adminOnly = true
     if (!schedRecipEmail || !schedDate) { showToast("⚠️ Fill email and date", "warn"); return; }
     const sendAt = new Date(`${schedDate}T${schedTime}`);
     if (sendAt <= new Date()) { showToast("⚠️ Must be in the future", "warn"); return; }
-    setSchedules((prev) => [...prev, { id: Math.random().toString(36).slice(2), recipName: schedRecipName, recipEmail: schedRecipEmail, linkedin: schedLinkedin, twitter: schedTwitter, newsletter: schedNewsletter, subject: schedSubject, sendAt: sendAt.toISOString(), status: "scheduled" }]);
+    setSchedules((prev) => [...prev, { id: Math.random().toString(36).slice(2), recipName: schedRecipName, recipEmail: schedRecipEmail, linkedin: schedLinkedin, twitter: schedTwitter, newsletter: schedNewsletter, subject: schedSubject, sendAt: sendAt.toISOString(), status: "scheduled", interviewSource: "", interviewTopic: "", specificMoment: "", demoLink: "https://usekorel.com/demo" }]);
     showToast(`📅 Scheduled for ${sendAt.toLocaleString()}`, "success");
   }
 
@@ -420,6 +448,14 @@ export default function KorelSend({ initialPack, onSendSuccess, adminOnly = true
                 </div>
                 <label style={S.label}>Company</label>
                 <input style={S.input} value={recipCompany} onChange={(e) => setRecipCompany(e.target.value)} placeholder="Acme Corp" />
+                <label style={S.label}>Interview Source</label>
+                <input style={S.input} value={recipInterviewSource} onChange={(e) => setRecipInterviewSource(e.target.value)} placeholder="Starter Story, Indie Hackers, My First Million..." />
+                <label style={S.label}>Interview Topic</label>
+                <input style={S.input} value={recipInterviewTopic} onChange={(e) => setRecipInterviewTopic(e.target.value)} placeholder="bootstrapping to $2M ARR without VC funding" />
+                <label style={S.label}>Specific Moment (the hook)</label>
+                <input style={S.input} value={recipSpecificMoment} onChange={(e) => setRecipSpecificMoment(e.target.value)} placeholder="you talked about firing your first employee..." />
+                <label style={S.label}>Demo Link</label>
+                <input style={S.input} value={recipDemoLink} onChange={(e) => setRecipDemoLink(e.target.value)} placeholder="https://usekorel.com/demo" />
               </div>
             </div>
             <div>
@@ -473,7 +509,7 @@ export default function KorelSend({ initialPack, onSendSuccess, adminOnly = true
                 <input id="csvInput" type="file" accept=".csv" style={{ display: "none" }} onChange={(e) => { const r = new FileReader(); r.onload = (ev) => { setRecipients(parseCSV(ev.target.result)); setBulkProgress(0); showToast("✅ CSV loaded"); }; r.readAsText(e.target.files[0]); }} />
                 <div style={S.btnRow}>
                   <button style={S.btnSecondary} onClick={() => { setRecipients(MOCK_PACKS.map((p) => ({ id: p.project_id, first_name: p.client_name.split(" ")[0], email: p.client_email, company: p.company, linkedin_post: p.linkedin_post, twitter_post: p.twitter_post, newsletter: p.newsletter, status: "pending" }))); setBulkProgress(0); showToast("📋 Sample loaded"); }}>Sample</button>
-                  <button style={S.btnSecondary} onClick={() => { const a = document.createElement("a"); a.href = "data:text/csv;charset=utf-8," + encodeURIComponent("first_name,email,company,linkedin_post,twitter_post,newsletter\nJohn,john@example.com,Acme,,,\n"); a.download = "korel-recipients.csv"; a.click(); }}>⬇ Template</button>
+                  <button style={S.btnSecondary} onClick={() => { const a = document.createElement("a"); a.href = "data:text/csv;charset=utf-8," + encodeURIComponent("first_name,email,company,interview_source,interview_topic,specific_moment,linkedin_post,twitter_post,newsletter,demo_link,your_name\nSarah,sarah@techco.io,TechCo,Starter Story,bootstrapping to $2M ARR without VC,,,,,,Saqib\n"); a.download = "korel-recipients.csv"; a.click(); }}>⬇ Template</button>
                 </div>
               </div>
               <div style={S.card}>

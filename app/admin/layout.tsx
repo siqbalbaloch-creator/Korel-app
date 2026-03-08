@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/admin/packs", label: "Packs" },
   { href: "/admin/waitlist", label: "Waitlist" },
   { href: "/admin/pricing-intent", label: "Pricing Intent" },
+  { href: "/admin/pipeline", label: "🤖 Pipeline" },
   { href: "/admin/send", label: "📨 Send" },
 ];
 

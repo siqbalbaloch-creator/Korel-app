@@ -15,6 +15,27 @@ enum Plan {
   ENTERPRISE
 }
 
+enum PipelineVideoStatus {
+  DISCOVERED
+  TRANSCRIPT_FETCHED
+  PACK_GENERATED
+  EMAIL_FOUND
+  READY
+  APPROVED
+  SENT
+  SKIPPED
+  FAILED
+}
+
+enum OutreachLeadStatus {
+  PENDING_EMAIL
+  EMAIL_FOUND
+  NO_EMAIL
+  APPROVED
+  SENT
+  SKIPPED
+}
+
 enum ToneType {
   MEASURED
   BOLD
@@ -179,6 +200,7 @@ model AuthorityPack {
 
   user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   repurposes AuthorityPackRepurpose[]
+  sendLogs   PackSendLog[]
 }
 
 model AuthorityPackRepurpose {
@@ -189,6 +211,21 @@ model AuthorityPackRepurpose {
   createdAt DateTime @default(now())
 
   pack AuthorityPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+}
+
+model PackSendLog {
+  id             String   @id @default(cuid())
+  packId         String
+  recipientEmail String
+  recipientName  String
+  subject        String
+  status         String   // "sent" | "failed"
+  sentAt         DateTime @default(now())
+  error          String?
+
+  pack AuthorityPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@index([packId])
 }
 
 model PricingInterest {
@@ -254,6 +291,52 @@ model WaitlistEntry {
   @@index([status])
   @@index([createdAt])
   @@index([lastSubmittedAt])
+}
+
+model PipelineVideo {
+  id                String              @id @default(cuid())
+  youtubeVideoId    String              @unique
+  youtubeUrl        String
+  title             String
+  channelName       String
+  publishedAt       DateTime
+  durationSeconds   Int                 @default(0)
+  transcriptFetched Boolean             @default(false)
+  transcript        String?
+  processedAt       DateTime?
+  status            PipelineVideoStatus @default(DISCOVERED)
+  errorMessage      String?
+  createdAt         DateTime            @default(now())
+
+  lead OutreachLead?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OutreachLead {
+  id               String             @id @default(cuid())
+  pipelineVideoId  String             @unique
+  firstName        String
+  lastName         String?
+  email            String?
+  emailConfidence  Int?
+  company          String
+  interviewSource  String
+  interviewTopic   String
+  specificMoment   String
+  linkedinPost     String
+  twitterPost      String
+  newsletter       String
+  status           OutreachLeadStatus @default(PENDING_EMAIL)
+  approvedAt       DateTime?
+  sentAt           DateTime?
+  createdAt        DateTime           @default(now())
+
+  pipelineVideo PipelineVideo @relation(fields: [pipelineVideoId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([createdAt])
 }
 
 model MarketingEvent {

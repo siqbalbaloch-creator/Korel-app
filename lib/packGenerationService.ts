@@ -173,22 +173,12 @@ const decodeHtmlEntities = (text: string): string =>
     .replace(/&quot;/g, '"')
     .replace(/\n/g, " ");
 
-const YOUTUBE_ANDROID_CLIENT = {
-  clientName: "ANDROID",
-  clientVersion: "19.35.36",
-  androidSdkVersion: 33,
-  userAgent:
-    "com.google.android.youtube/19.35.36(Linux; U; Android 13; en_US; SM-S908E Build/TP1A.220624.014) gzip",
-  hl: "en",
-  gl: "US",
-  osName: "Android",
-  osVersion: "13",
-  platform: "MOBILE",
-  deviceMake: "Samsung",
-  deviceModel: "SM-S908E",
+const YOUTUBE_PAGE_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept-Language": "en-US,en;q=0.9",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 };
-
-const YOUTUBE_INNERTUBE_API_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
 
 const extractCaptionText = (captionXml: string): string[] => {
   const pMatches = [...captionXml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)];
@@ -221,43 +211,57 @@ const fetchWithNetworkRetry = async (
   }
 };
 
+// Extracts a JSON array value for a given key from raw HTML using a bracket counter
+// (avoids fragile regex on nested JSON).
+function extractJsonArrayFromHtml(
+  html: string,
+  key: string,
+): unknown[] | null {
+  const marker = `"${key}":[`;
+  const markerIdx = html.indexOf(marker);
+  if (markerIdx === -1) return null;
+  const arrayStart = markerIdx + marker.length - 1; // index of '['
+  let depth = 0;
+  for (let i = arrayStart; i < html.length; i++) {
+    if (html[i] === "[") depth++;
+    else if (html[i] === "]") {
+      depth--;
+      if (depth === 0) {
+        try {
+          return JSON.parse(html.slice(arrayStart, i + 1)) as unknown[];
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 const fetchYouTubeTranscript = async (url: string): Promise<string> => {
   const videoId = extractVideoId(url);
   if (!videoId) {
     throw createPackError("INPUT_INVALID_URL", "Invalid YouTube URL");
   }
 
-  const playerRes = await fetchWithNetworkRetry(
-    "player",
-    `https://www.youtube.com/youtubei/v1/player?key=${YOUTUBE_INNERTUBE_API_KEY}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": YOUTUBE_ANDROID_CLIENT.userAgent,
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-      body: JSON.stringify({
-        context: { client: YOUTUBE_ANDROID_CLIENT },
-        videoId,
-      }),
-    },
+  // Fetch the watch page — YouTube embeds caption URLs in the page HTML
+  const pageRes = await fetchWithNetworkRetry(
+    "page",
+    `https://www.youtube.com/watch?v=${videoId}&hl=en`,
+    { headers: YOUTUBE_PAGE_HEADERS },
   );
 
-  if (!playerRes.ok) {
-    throw new Error(`YouTube player fetch failed: ${playerRes.status}`);
+  if (!pageRes.ok) {
+    throw new Error(`YouTube page fetch failed: ${pageRes.status}`);
   }
 
-  const playerResponse = (await playerRes.json()) as {
-    captions?: {
-      playerCaptionsTracklistRenderer?: {
-        captionTracks?: { baseUrl: string; languageCode: string }[];
-      };
-    };
-  };
+  const html = await pageRes.text();
 
-  const captionTracks =
-    playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+  type CaptionTrack = { baseUrl: string; languageCode: string };
+  const captionTracks = extractJsonArrayFromHtml(
+    html,
+    "captionTracks",
+  ) as CaptionTrack[] | null;
 
   if (!captionTracks || captionTracks.length === 0) {
     throw new Error("No captions available for this video");
@@ -269,10 +273,7 @@ const fetchYouTubeTranscript = async (url: string): Promise<string> => {
     ) ?? captionTracks[0];
 
   const captionRes = await fetchWithNetworkRetry("caption", track.baseUrl, {
-    headers: {
-      "User-Agent": YOUTUBE_ANDROID_CLIENT.userAgent,
-      "Accept-Language": "en-US,en;q=0.9",
-    },
+    headers: YOUTUBE_PAGE_HEADERS,
   });
   if (!captionRes.ok) throw new Error(`Caption fetch failed: ${captionRes.status}`);
   const captionXml = await captionRes.text();

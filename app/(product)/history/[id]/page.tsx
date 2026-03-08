@@ -25,6 +25,7 @@ import {
 } from "@/lib/insightGuard";
 import type { StrategicAuthorityMap } from "@/ai/prompts";
 import type { Prisma } from "@prisma/client";
+import SendToFounderButton from "./SendToFounderButton";
 
 type CoreThesis = {
   primaryThesis: string;
@@ -338,6 +339,8 @@ export default async function HistoryDetailPage({ params }: HistoryDetailParams)
     redirect("/signin");
   }
 
+  const isAdmin = session.user.role === "admin";
+
   const pack = await prisma.authorityPack.findFirst({
     where: { id, userId },
   });
@@ -355,6 +358,13 @@ export default async function HistoryDetailPage({ params }: HistoryDetailParams)
   const strategicMapRaw = (pack.strategicMap ?? null) as StrategicAuthorityMap | null;
   const messagingStrength = parseMessagingStrength(pack.messagingStrength);
   const authorityConsistency = parseAuthorityConsistency(pack.authorityConsistency);
+
+  const sendLogs = isAdmin
+    ? await prisma.packSendLog.findMany({
+        where: { packId: id },
+        orderBy: { sentAt: "desc" },
+      })
+    : [];
 
   const planInfo = await getUserPlan(userId, { role: session.user.role });
   const planConfig = getPlanConfig(planInfo.plan);
@@ -860,6 +870,7 @@ export default async function HistoryDetailPage({ params }: HistoryDetailParams)
                   canRepurpose={canRepurpose}
                   upgradeHref="/upgrade"
                 />
+                {isAdmin && <SendToFounderButton packId={pack.id} />}
                 <form action={deletePackAction} className="w-full">
                   <QuickActionButton
                     icon={
@@ -952,6 +963,54 @@ export default async function HistoryDetailPage({ params }: HistoryDetailParams)
                 originalInput={pack.originalInput}
               />
             </section>
+
+            {isAdmin && (
+              <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm p-5 space-y-3">
+                <h2 className="text-sm font-semibold text-neutral-900">
+                  Send History
+                </h2>
+                {sendLogs.length === 0 ? (
+                  <p className="text-xs text-neutral-400">Not sent yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {sendLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex items-start justify-between gap-2 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-neutral-800 truncate">
+                            {log.recipientName}
+                          </p>
+                          <p className="text-neutral-400 truncate">
+                            {log.recipientEmail}
+                          </p>
+                          <p className="text-neutral-400">
+                            {log.sentAt.toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}{" "}
+                            {log.sentAt.toLocaleTimeString("en-US", {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 font-medium ${
+                            log.status === "sent"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-600"
+                          }`}
+                        >
+                          {log.status === "sent" ? "Sent" : "Failed"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
           </aside>
         </div>
       </div>
