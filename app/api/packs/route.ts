@@ -278,11 +278,13 @@ export async function POST(request: Request) {
     logger.info("pack.generation.started", { userId, inputLength: input.length, isUrl, inputType, angle });
 
     let structuredPack: Awaited<ReturnType<typeof generateAuthorityPack>>;
+    let llmUsed = "openai-gpt4o";
     try {
       structuredPack = await generateAuthorityPack(input, {
         onStage: (stage) => {
           logStage(`generation.${stage}`);
         },
+        onLlmUsed: (model) => { llmUsed = model; },
         inputType,
         angle,
         profile,
@@ -423,6 +425,7 @@ export async function POST(request: Request) {
             qualityScore: totalScore,
             qualityBreakdown: breakdown,
             lastGeneratedAt: new Date(),
+            llmUsed,
           },
         });
 
@@ -463,6 +466,7 @@ export async function POST(request: Request) {
         linkedinPost,
         twitterPost,
         newsletter,
+        llmUsed,
       });
     }
 

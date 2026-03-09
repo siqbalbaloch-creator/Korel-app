@@ -43,6 +43,18 @@ export default async function AdminPipelinePage() {
     createdAt: r.createdAt.toISOString(),
   }));
 
+  // LLM stats — last 30 days
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const [gpt4oCount, claudeCount] = await Promise.all([
+    prisma.authorityPack.count({ where: { createdAt: { gte: thirtyDaysAgo }, llmUsed: "openai-gpt4o" } }),
+    prisma.authorityPack.count({ where: { createdAt: { gte: thirtyDaysAgo }, llmUsed: "anthropic-claude" } }),
+  ]);
+  const llmStats = {
+    gpt4o: gpt4oCount,
+    claude: claudeCount,
+    total: gpt4oCount + claudeCount,
+  };
+
   // Last run info
   const lastVideo = await prisma.pipelineVideo.findFirst({
     orderBy: { createdAt: "desc" },
@@ -80,6 +92,7 @@ export default async function AdminPipelinePage() {
         pipelineLog={pipelineLog}
         lastRun={lastRun}
         defaultQuery={defaultQuery}
+        llmStats={llmStats}
       />
     </div>
   );

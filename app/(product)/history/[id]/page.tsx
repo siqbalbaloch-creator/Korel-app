@@ -526,6 +526,17 @@ export default async function HistoryDetailPage({ params }: HistoryDetailParams)
           >
             {pack.status === "published" ? "Published" : "Draft"}
           </span>
+          {pack.llmUsed && (
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+                pack.llmUsed === "anthropic-claude"
+                  ? "bg-orange-50 text-orange-700 border border-orange-200"
+                  : "bg-sky-50 text-sky-700 border border-sky-200"
+              }`}
+            >
+              {pack.llmUsed === "anthropic-claude" ? "🧠 Claude" : "🤖 GPT-4o"}
+            </span>
+          )}
           {/* Publish encouragement — high quality draft */}
           {pack.status !== "published" &&
             pack.qualityScore !== null &&

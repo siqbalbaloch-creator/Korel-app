@@ -19,6 +19,7 @@ export type CreateLeadFromPackOptions = {
   linkedinPost: string;
   twitterPost: string;
   newsletter: string;
+  llmUsed?: string;
 };
 
 type RevenueStage = "pre-revenue" | "early" | "growing" | "scaled";
@@ -587,7 +588,7 @@ export async function createLeadFromPack(
 ): Promise<void> {
   let pvId: string | null = null;
   try {
-    const { transcript, packId, videoTitle, youtubeUrl, linkedinUrl: explicitLinkedinUrl, linkedinPost, twitterPost, newsletter } =
+    const { transcript, packId, videoTitle, youtubeUrl, linkedinUrl: explicitLinkedinUrl, linkedinPost, twitterPost, newsletter, llmUsed } =
       options;
 
     console.log(`[createLeadFromPack] start packId=${packId}`);
@@ -647,6 +648,7 @@ export async function createLeadFromPack(
         newsletter,
         monthlyRevenue: founderInfo.monthlyRevenue,
         revenueStage: founderInfo.revenueStage,
+        llmUsed: llmUsed ?? "openai-gpt4o",
         status: "PENDING_EMAIL",
       },
       select: { id: true },

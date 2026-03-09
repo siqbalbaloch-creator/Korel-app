@@ -196,6 +196,7 @@ model AuthorityPack {
   qualityScore      Float?
   qualityBreakdown  Json?
   status            String    @default("draft")
+  llmUsed           String?   // 'openai-gpt4o' | 'anthropic-claude' | null
   createdAt         DateTime  @default(now())
 
   user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -333,6 +334,7 @@ model OutreachLead {
   newsletter       String
   monthlyRevenue   Int?      // estimated MRR in USD (null = not mentioned)
   revenueStage     String?   // pre-revenue | early | growing | scaled
+  llmUsed          String?   // 'openai-gpt4o' | 'anthropic-claude' | null
   status           OutreachLeadStatus @default(PENDING_EMAIL)
   approvedAt       DateTime?
   sentAt           DateTime?

@@ -1,4 +1,5 @@
 import { openai } from "./openai";
+import { anthropic } from "./anthropic";
 import {
   ExtractedInsights,
   InputType,
@@ -119,7 +120,8 @@ export const isPackGenerationError = (err: unknown): err is PackGenerationError 
 const createPackError = (code: ErrorCode, message: string) =>
   new PackGenerationError(code, message);
 
-const MODEL = "gpt-4o-mini";
+const MODEL = "gpt-4o";
+const MODEL_ANTHROPIC = "claude-haiku-4-5-20251001";
 const TEMPERATURE = 0.4;
 
 const MAX_TOKENS = {
@@ -1597,11 +1599,92 @@ export const deriveHooksFromSAM = (sam: StrategicAuthorityMap): StrategicHooks =
 
 type GenerationStage = "extraction_started" | "assets_started";
 
+// ─── Anthropic fallback helpers ──────────────────────────────────────────────
+
+const callAnthropic = async (
+  system: string,
+  userPrompt: string,
+  maxTokens: number,
+): Promise<string> => {
+  const response = await anthropic.messages.create({
+    model: MODEL_ANTHROPIC,
+    max_tokens: maxTokens,
+    system,
+    messages: [{ role: "user", content: userPrompt }],
+  });
+  const block = response.content[0];
+  const text = block?.type === "text" ? block.text : null;
+  if (!text?.trim()) throw new Error("Anthropic returned no content");
+  return text.trim();
+};
+
+const extractSAMWithAnthropic = async (
+  transcript: string,
+  inputType: InputType = "INTERVIEW",
+  angle: AngleType = "THOUGHT_LEADERSHIP",
+  profile?: AuthorityProfileContext | null,
+): Promise<StrategicAuthorityMap> => {
+  const userPrompt = buildSAMExtractionPrompt(transcript, inputType, angle, profile);
+  const system =
+    SAM_EXTRACTION_SYSTEM_PROMPT +
+    "\n\nCRITICAL: Return ONLY valid JSON. No markdown code blocks, no backticks, no commentary. Start with { and end with }.";
+
+  const raw = await callAnthropic(system, userPrompt, MAX_TOKENS.sam.max);
+  // Strip accidental markdown fences
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+  const parsed = tryParseJson(cleaned);
+  if (!parsed) {
+    throw createPackError("EXTRACTION_PARSE_FAILED", "Anthropic SAM response was not valid JSON");
+  }
+  if (!validateSAM(parsed)) {
+    throw createPackError("EXTRACTION_PARSE_FAILED", "Anthropic SAM response did not match expected schema");
+  }
+  return normalizeSAM(parsed, inputType, angle);
+};
+
+const generatePlatformAssetsFromSAMWithAnthropic = async (
+  sam: StrategicAuthorityMap,
+  inputType: InputType = "INTERVIEW",
+  angle: AngleType = "THOUGHT_LEADERSHIP",
+  profile?: AuthorityProfileContext | null,
+): Promise<PlatformAssets> => {
+  const [linkedinA, linkedinB, xThread, newsletter] = await Promise.all([
+    callAnthropic(
+      SAM_PLATFORM_SYSTEM_PROMPT,
+      buildLinkedInFromSAMPrompt(sam, "A", inputType, angle, profile),
+      MAX_TOKENS.linkedin,
+    ),
+    callAnthropic(
+      SAM_PLATFORM_SYSTEM_PROMPT,
+      buildLinkedInFromSAMPrompt(sam, "B", inputType, angle, profile),
+      MAX_TOKENS.linkedin,
+    ),
+    callAnthropic(
+      SAM_PLATFORM_SYSTEM_PROMPT,
+      buildXThreadFromSAMPrompt(sam, inputType, angle, profile),
+      MAX_TOKENS.xthread,
+    ),
+    callAnthropic(
+      SAM_PLATFORM_SYSTEM_PROMPT,
+      buildNewsletterFromSAMPrompt(sam, inputType, angle, profile),
+      MAX_TOKENS.newsletter,
+    ),
+  ]);
+  return enforceInsightGuard({
+    linkedinA: normalizeLinkedInPost(linkedinA),
+    linkedinB: normalizeLinkedInPost(linkedinB),
+    xThread: xThread.replace(/\r\n/g, "\n").trim(),
+    newsletter: newsletter.replace(/\r\n/g, "\n").trim(),
+  });
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 type GenerationStageCallback = (stage: GenerationStage) => void;
 
 export const generateAuthorityPack = async (
   originalInput: string,
-  options?: { onStage?: GenerationStageCallback; inputType?: InputType; angle?: AngleType; profile?: AuthorityProfileContext | null },
+  options?: { onStage?: GenerationStageCallback; inputType?: InputType; angle?: AngleType; profile?: AuthorityProfileContext | null; onLlmUsed?: (model: string) => void },
 ): Promise<AuthorityPackStructure> => {
   let transcript = originalInput;
   let videoTitle: string | null = null;
@@ -1654,10 +1737,33 @@ export const generateAuthorityPack = async (
   const angle: AngleType = options?.angle ?? "THOUGHT_LEADERSHIP";
   const profile = options?.profile ?? null;
 
-  options?.onStage?.("extraction_started");
-  const sam = await extractStrategicAuthorityMap(transcript, inputType, angle, profile);
-  options?.onStage?.("assets_started");
-  const assets = await generatePlatformAssetsFromSAM(sam, inputType, angle, profile);
+  let sam: StrategicAuthorityMap;
+  let assets: PlatformAssets;
+  let llmUsed = "openai-gpt4o";
+
+  try {
+    options?.onStage?.("extraction_started");
+    sam = await extractStrategicAuthorityMap(transcript, inputType, angle, profile);
+    options?.onStage?.("assets_started");
+    assets = await generatePlatformAssetsFromSAM(sam, inputType, angle, profile);
+  } catch (openAiErr) {
+    // Don't fallback for input/content errors — those won't be fixed by switching LLMs
+    if (isPackGenerationError(openAiErr)) {
+      const code = (openAiErr as PackGenerationError).code;
+      if (code === "TRANSCRIPT_UNAVAILABLE" || code === "INPUT_INVALID_URL") {
+        throw openAiErr;
+      }
+    }
+    const errMsg = openAiErr instanceof Error ? openAiErr.message : String(openAiErr);
+    console.log(`OpenAI failed, falling back to Anthropic: ${errMsg}`);
+    llmUsed = "anthropic-claude";
+    options?.onStage?.("extraction_started");
+    sam = await extractSAMWithAnthropic(transcript, inputType, angle, profile);
+    options?.onStage?.("assets_started");
+    assets = await generatePlatformAssetsFromSAMWithAnthropic(sam, inputType, angle, profile);
+  }
+
+  options?.onLlmUsed?.(llmUsed);
 
   const fallbackTitle = toTitleCase(extractTopic(originalInput)) || "Authority Pack";
   const finalTitle = videoTitle || fallbackTitle;

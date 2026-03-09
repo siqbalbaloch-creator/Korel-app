@@ -29,6 +29,7 @@ type Lead = {
   newsletter: string;
   monthlyRevenue: number | null;
   revenueStage: string | null;
+  llmUsed?: string | null;
   status: string;
   approvedAt: string | null;
   sentAt: string | null;
@@ -53,11 +54,18 @@ type LastRun = {
   count: number;
 } | null;
 
+type LlmStats = {
+  gpt4o: number;
+  claude: number;
+  total: number;
+};
+
 type Props = {
   leads: Lead[];
   pipelineLog: PipelineLog[];
   lastRun: LastRun;
   defaultQuery: string;
+  llmStats: LlmStats;
 };
 
 type ReadyFilter = "all" | "growing_plus" | "has_email";
@@ -189,7 +197,20 @@ function LeadCard({
           </p>
         </div>
 
-        <RevenueBadge stage={lead.revenueStage} revenue={lead.monthlyRevenue} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <RevenueBadge stage={lead.revenueStage} revenue={lead.monthlyRevenue} />
+          {lead.llmUsed && (
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                lead.llmUsed === "anthropic-claude"
+                  ? "bg-orange-50 text-orange-600"
+                  : "bg-sky-50 text-sky-600"
+              }`}
+            >
+              {lead.llmUsed === "anthropic-claude" ? "🧠 Claude" : "🤖 GPT-4o"}
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-2">
           {editingEmail ? (
@@ -362,7 +383,7 @@ function LeadCard({
   );
 }
 
-export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQuery }: Props) {
+export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQuery, llmStats }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("READY");
   const [localLeads, setLocalLeads] = useState<Lead[]>(leads);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -581,7 +602,7 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
     <div className="space-y-6">
       {/* Status bar */}
       <div className="rounded-xl border border-neutral-200 bg-white shadow-sm p-4 flex flex-wrap items-center gap-4">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 space-y-0.5">
           {lastRun ? (
             <p className="text-sm text-neutral-700">
               <span className="font-medium">Last run:</span>{" "}
@@ -595,6 +616,15 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
             </p>
           ) : (
             <p className="text-sm text-neutral-400">Never run — trigger a run to start.</p>
+          )}
+          {llmStats.total > 0 && (
+            <p className="text-xs text-neutral-500">
+              Last 30 days: {llmStats.total} pack{llmStats.total !== 1 ? "s" : ""} —{" "}
+              <span className="text-sky-600 font-medium">🤖 {llmStats.gpt4o} GPT-4o</span>
+              {llmStats.claude > 0 && (
+                <span className="text-orange-600 font-medium"> · 🧠 {llmStats.claude} Claude fallback</span>
+              )}
+            </p>
           )}
         </div>
         <div className="flex items-center gap-2">
