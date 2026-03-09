@@ -119,30 +119,29 @@ const READY_STATUSES = ["PENDING_EMAIL", "EMAIL_FOUND", "NO_EMAIL"];
 
 function LeadCard({
   lead,
-  onApprove,
+  onApproveAndSend,
   onSkip,
   onEmailEdit,
   onLeadUpdate,
   expanded,
   onToggleExpand,
-  approved,
-  approving,
+  sending,
   skipping,
 }: {
   lead: Lead;
-  onApprove: (id: string) => void;
+  onApproveAndSend: (id: string) => void;
   onSkip: (id: string) => void;
   onEmailEdit: (id: string, email: string) => void;
   onLeadUpdate: (id: string, patch: Partial<Lead>) => void;
   expanded: string | null;
   onToggleExpand: (section: string) => void;
-  approved: boolean;
-  approving: boolean;
+  sending: boolean;
   skipping: boolean;
 }) {
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailInput, setEmailInput] = useState(lead.email ?? "");
   const [showFindPanel, setShowFindPanel] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   // Poll every 5s while PENDING_EMAIL — waterfall runs async after lead creation
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -188,7 +187,11 @@ function LeadCard({
   return (
     <div
       className={`rounded-xl border bg-white shadow-sm transition-all ${
-        approved ? "border-green-300 bg-green-50" : "border-neutral-200"
+        lead.status === "APPROVED"
+          ? "border-green-300 bg-green-50"
+          : lead.status === "SENT"
+            ? "border-emerald-300 bg-emerald-50"
+            : "border-neutral-200"
       }`}
     >
       <div className="p-4 space-y-2">
@@ -216,9 +219,19 @@ function LeadCard({
               })}
             </p>
           </div>
-          {approved && (
+          {lead.status === "APPROVED" && (
             <span className="shrink-0 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
               ✅ Approved
+            </span>
+          )}
+          {lead.status === "SENT" && (
+            <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+              📨 Sent
+            </span>
+          )}
+          {lead.status === "SKIPPED" && (
+            <span className="shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold text-neutral-500">
+              ⏭ Skipped
             </span>
           )}
         </div>
@@ -450,22 +463,35 @@ function LeadCard({
           );
         })}
 
-        {!approved && (
-          <div className="flex gap-2 pt-1">
-            <button
-              onClick={() => onApprove(lead.id)}
-              disabled={approving || skipping}
-              className="flex-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-            >
-              {approving ? "Approving…" : "✅ Approve"}
-            </button>
-            <button
-              onClick={() => onSkip(lead.id)}
-              disabled={approving || skipping}
-              className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 transition-colors"
-            >
-              {skipping ? "…" : "⏭ Skip"}
-            </button>
+        {READY_STATUSES.includes(lead.status) && (
+          <div className="space-y-1.5 pt-1">
+            {sendError && (
+              <p className="text-xs font-medium text-red-500">{sendError}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  if (!lead.email) {
+                    setSendError("Add an email address before sending");
+                    setEditingEmail(true);
+                    return;
+                  }
+                  setSendError(null);
+                  onApproveAndSend(lead.id);
+                }}
+                disabled={sending || skipping}
+                className="flex-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              >
+                {sending ? "📨 Sending…" : "✅ Approve & Send"}
+              </button>
+              <button
+                onClick={() => onSkip(lead.id)}
+                disabled={sending || skipping}
+                className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 transition-colors"
+              >
+                {skipping ? "…" : "⏭ Skip"}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -477,7 +503,7 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
   const [activeTab, setActiveTab] = useState<Tab>("READY");
   const [localLeads, setLocalLeads] = useState<Lead[]>(leads);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [actioningIds, setActioningIds] = useState<Record<string, "approving" | "skipping">>({});
+  const [actioningIds, setActioningIds] = useState<Record<string, "approving" | "skipping" | "sending">>({});
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<string | null>(null);
   const [sendingAll, setSendingAll] = useState(false);
@@ -490,7 +516,14 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
   const [readyFilter, setReadyFilter] = useState<ReadyFilter>("all");
   const [repairing, setRepairing] = useState(false);
   const [repairResult, setRepairResult] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const readyLeads = localLeads.filter((l) => READY_STATUSES.includes(l.status));
   const approvedLeads = localLeads.filter((l) => l.status === "APPROVED");
@@ -514,21 +547,76 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
   };
   const tabCount = (tab: Tab) => tabLeads[tab].length;
 
-  async function approveLead(id: string) {
-    setActioningIds((prev) => ({ ...prev, [id]: "approving" }));
-    await fetch(`/api/admin/leads/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "APPROVED" }),
+  function buildLeadEmail(lead: Lead): { subject: string; body: string } {
+    const subject = `I turned your ${lead.interviewSource} interview into content`;
+    const body = buildEmailBody({
+      note: `Hi {{first_name}},\n\nI recently watched your interview on {{interview_source}} about {{interview_topic}} — really enjoyed the part where {{specific_moment}}.\n\nI built a tool called Korel that turns founder interviews into structured authority content (LinkedIn posts, X threads, newsletters, etc.).\n\nOut of curiosity, I pasted a transcript from your interview into Korel and it generated a full content pack from it.\n\n— {{your_name}}`,
+      linkedinPost: lead.linkedinPost,
+      twitterPost: lead.twitterPost,
+      newsletter: lead.newsletter,
+      firstName: lead.firstName,
+      company: lead.company,
+      interviewSource: lead.interviewSource,
+      interviewTopic: lead.interviewTopic,
+      specificMoment: lead.specificMoment,
+      demoLink: "https://usekorel.com/demo",
+      yourName: "Saqib",
+      include: { linkedin: true, twitter: true, newsletter: true },
     });
-    setLocalLeads((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, status: "APPROVED", approvedAt: new Date().toISOString() } : l)),
-    );
-    setActioningIds((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
+    return { subject, body };
+  }
+
+  async function approveAndSendLead(id: string) {
+    const lead = localLeads.find((l) => l.id === id);
+    if (!lead?.email) return;
+    setActioningIds((prev) => ({ ...prev, [id]: "sending" }));
+
+    // Step 1: mark APPROVED in DB
+    try {
+      await fetch(`/api/admin/leads/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "APPROVED" }),
+      });
+    } catch {
+      setActioningIds((prev) => { const n = { ...prev }; delete n[id]; return n; });
+      setToast({ message: "❌ Approve failed — check connection", type: "error" });
+      return;
+    }
+
+    // Step 2: send email
+    const { subject, body } = buildLeadEmail(lead);
+    try {
+      const sendRes = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: lead.email, toName: lead.firstName, subject, body }),
+      });
+      const sendData = (await sendRes.json()) as { success?: boolean; error?: string };
+      if (!sendRes.ok || !sendData.success) {
+        // Keep as APPROVED — visible in Approved tab for retry
+        setLocalLeads((prev) =>
+          prev.map((l) => (l.id === id ? { ...l, status: "APPROVED", approvedAt: new Date().toISOString() } : l)),
+        );
+        setToast({ message: "❌ Send failed — check Gmail connection", type: "error" });
+      } else {
+        await fetch(`/api/admin/leads/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "SENT" }),
+        });
+        setLocalLeads((prev) =>
+          prev.map((l) => (l.id === id ? { ...l, status: "SENT", sentAt: new Date().toISOString() } : l)),
+        );
+        setToast({ message: `✅ Sent to ${lead.firstName}!`, type: "success" });
+      }
+    } catch {
+      setLocalLeads((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, status: "APPROVED", approvedAt: new Date().toISOString() } : l)),
+      );
+      setToast({ message: "❌ Send failed — check Gmail connection", type: "error" });
+    }
+    setActioningIds((prev) => { const n = { ...prev }; delete n[id]; return n; });
   }
 
   async function skipLead(id: string) {
@@ -565,7 +653,9 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
     setLocalLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   }
 
-  async function approveAll() {
+  async function approveAllAndSend() {
+    const toSend = readyLeads.filter((l) => l.email); // capture before state updates
+    // Approve all in DB (including leads without email)
     await fetch("/api/admin/leads/approve-all", { method: "POST" });
     setLocalLeads((prev) =>
       prev.map((l) =>
@@ -574,7 +664,45 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
           : l,
       ),
     );
-    setActiveTab("APPROVED");
+    if (!toSend.length) {
+      setActiveTab("APPROVED");
+      return;
+    }
+    setSendingAll(true);
+    setSendProgress({ current: 0, total: toSend.length });
+    for (let i = 0; i < toSend.length; i++) {
+      const lead = toSend[i];
+      setSendProgress({ current: i, total: toSend.length });
+      const { subject, body } = buildLeadEmail(lead);
+      try {
+        const sendRes = await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to: lead.email, toName: lead.firstName, subject, body }),
+        });
+        const sendData = (await sendRes.json()) as { success?: boolean; error?: string };
+        if (!sendRes.ok || !sendData.success) {
+          console.error(`[send-email] Failed for ${lead.email}: ${sendData.error ?? "unknown error"}`);
+          continue;
+        }
+        await fetch(`/api/admin/leads/${lead.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "SENT" }),
+        });
+        setLocalLeads((prev) =>
+          prev.map((l) => (l.id === lead.id ? { ...l, status: "SENT", sentAt: new Date().toISOString() } : l)),
+        );
+      } catch {
+        console.error(`[send-email] Network error for ${lead.email}`);
+      }
+      if (i < toSend.length - 1) {
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    }
+    setSendProgress({ current: toSend.length, total: toSend.length });
+    setSendingAll(false);
+    setActiveTab("SENT");
   }
 
   async function repairStuck() {
@@ -637,21 +765,7 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
       const lead = toSend[i];
       setSendProgress({ current: i, total: toSend.length });
 
-      const subject = `I turned your ${lead.interviewSource} interview into content`;
-      const body = buildEmailBody({
-        note: `Hi {{first_name}},\n\nI recently watched your interview on {{interview_source}} about {{interview_topic}} — really enjoyed the part where {{specific_moment}}.\n\nI built a tool called Korel that turns founder interviews into structured authority content (LinkedIn posts, X threads, newsletters, etc.).\n\nOut of curiosity, I pasted a transcript from your interview into Korel and it generated a full content pack from it.\n\n— {{your_name}}`,
-        linkedinPost: lead.linkedinPost,
-        twitterPost: lead.twitterPost,
-        newsletter: lead.newsletter,
-        firstName: lead.firstName,
-        company: lead.company,
-        interviewSource: lead.interviewSource,
-        interviewTopic: lead.interviewTopic,
-        specificMoment: lead.specificMoment,
-        demoLink: "https://usekorel.com/demo",
-        yourName: "Saqib",
-        include: { linkedin: true, twitter: true, newsletter: true },
-      });
+      const { subject, body } = buildLeadEmail(lead);
 
       try {
         const sendRes = await fetch("/api/send-email", {
@@ -858,11 +972,23 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
           {activeTab === "READY" && readyLeads.length > 0 && (
             <div className="flex flex-wrap items-center gap-3">
               <button
-                onClick={approveAll}
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+                onClick={approveAllAndSend}
+                disabled={sendingAll}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors"
               >
-                ✅ Approve All ({readyLeads.length})
+                {sendingAll ? "📨 Sending…" : `✅ Approve All & Send All (${readyLeads.length})`}
               </button>
+              {sendingAll && sendProgress && (
+                <div className="flex items-center gap-2">
+                  <div className="w-24 h-1.5 rounded-full bg-neutral-200 overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-500 transition-all duration-500 rounded-full"
+                      style={{ width: `${Math.round((sendProgress.current / sendProgress.total) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-neutral-500">{sendProgress.current}/{sendProgress.total}</span>
+                </div>
+              )}
               <div className="flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
                 {(
                   [
@@ -945,14 +1071,13 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
                 <LeadCard
                   key={lead.id}
                   lead={lead}
-                  onApprove={approveLead}
+                  onApproveAndSend={approveAndSendLead}
                   onSkip={skipLead}
                   onEmailEdit={editEmail}
                   onLeadUpdate={updateLead}
                   expanded={expandedSection}
                   onToggleExpand={setExpandedSection}
-                  approved={lead.status === "APPROVED"}
-                  approving={actioningIds[lead.id] === "approving"}
+                  sending={actioningIds[lead.id] === "sending"}
                   skipping={actioningIds[lead.id] === "skipping"}
                 />
               ))}
@@ -1020,6 +1145,19 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
           </div>
         )}
       </div>
+
+      {/* Toast notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 rounded-xl border px-4 py-3 text-sm font-semibold shadow-lg ${
+            toast.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }
