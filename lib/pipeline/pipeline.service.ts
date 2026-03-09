@@ -15,6 +15,7 @@ export type CreateLeadFromPackOptions = {
   packId: string;
   videoTitle?: string;
   youtubeUrl?: string;
+  linkedinUrl?: string;
   linkedinPost: string;
   twitterPost: string;
   newsletter: string;
@@ -568,7 +569,7 @@ export async function createLeadFromPack(
 ): Promise<void> {
   let pvId: string | null = null;
   try {
-    const { transcript, packId, videoTitle, youtubeUrl, linkedinPost, twitterPost, newsletter } =
+    const { transcript, packId, videoTitle, youtubeUrl, linkedinUrl: explicitLinkedinUrl, linkedinPost, twitterPost, newsletter } =
       options;
 
     console.log(`[createLeadFromPack] start packId=${packId}`);
@@ -617,7 +618,7 @@ export async function createLeadFromPack(
         email: null,
         emailConfidence: null,
         emailSource: null,
-        linkedinUrl: founderInfo.linkedinUrl,
+        linkedinUrl: explicitLinkedinUrl || founderInfo.linkedinUrl,
         company: founderInfo.company,
         interviewSource: youtubeUrl ? "YouTube" : "Manual",
         interviewTopic: founderInfo.interviewTopic,

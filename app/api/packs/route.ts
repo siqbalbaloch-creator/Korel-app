@@ -217,11 +217,13 @@ export async function POST(request: Request) {
     let inputType: InputType = "INTERVIEW";
     let angle: AngleType = "THOUGHT_LEADERSHIP";
     let youtubeUrl = "";
+    let linkedinUrlFromBody = "";
     try {
-      const body = (await request.json()) as { input?: string; title?: string; inputType?: string; angle?: string; youtubeUrl?: string };
+      const body = (await request.json()) as { input?: string; title?: string; inputType?: string; angle?: string; youtubeUrl?: string; linkedinUrl?: string };
       input = typeof body.input === "string" ? body.input.trim() : "";
       titleFromUser = typeof body.title === "string" ? body.title.trim() : "";
       youtubeUrl = typeof body.youtubeUrl === "string" ? body.youtubeUrl.trim() : "";
+      linkedinUrlFromBody = typeof body.linkedinUrl === "string" ? body.linkedinUrl.trim() : "";
       const rawType = typeof body.inputType === "string" ? body.inputType.trim() : "";
       inputType = VALID_INPUT_TYPES.has(rawType as InputType)
         ? (rawType as InputType)
@@ -457,6 +459,7 @@ export async function POST(request: Request) {
         packId: created.id,
         videoTitle: finalTitle,
         youtubeUrl: effectiveYoutubeUrl || undefined,
+        linkedinUrl: linkedinUrlFromBody || undefined,
         linkedinPost,
         twitterPost,
         newsletter,

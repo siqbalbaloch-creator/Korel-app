@@ -89,6 +89,7 @@ export default function NewPackPage() {
   const [sourceInput, setSourceInput] = useState("");
   const [episodeTitle, setEpisodeTitle] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
   const [inputType, setInputType] = useState("INTERVIEW");
   const [angle, setAngle] = useState("THOUGHT_LEADERSHIP");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -208,7 +209,7 @@ export default function NewPackPage() {
       const response = await fetch("/api/packs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: inputValue, title: episodeTitle.trim() || undefined, inputType, angle, youtubeUrl: youtubeUrl.trim() || undefined }),
+        body: JSON.stringify({ input: inputValue, title: episodeTitle.trim() || undefined, inputType, angle, youtubeUrl: youtubeUrl.trim() || undefined, linkedinUrl: linkedinUrl.trim() || undefined }),
         signal: controller.signal,
       });
       let data: PacksResponse = {};
@@ -535,41 +536,77 @@ export default function NewPackPage() {
             />
           </div>
 
-          {/* YouTube URL — only when pasting raw transcript for an interview */}
+          {/* YouTube URL + LinkedIn URL — only when pasting raw transcript for an interview */}
           {inputType === "INTERVIEW" && sourceInput.trim() && !/^https?:\/\//i.test(sourceInput.trim()) && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label style={{ fontSize: "12px", fontWeight: 600, color: "#475569" }} htmlFor="youtube-url">
-                YouTube URL <span style={{ fontWeight: 400, color: "#94A3B8" }}>(optional — for outreach)</span>
-              </label>
-              <input
-                id="youtube-url"
-                type="url"
-                placeholder="https://youtube.com/watch?v=..."
-                value={youtubeUrl}
-                disabled={isGenerating}
-                onChange={(e) => setYoutubeUrl(e.target.value)}
-                style={{
-                  width: "100%",
-                  border: "1.5px solid #E2E8F0",
-                  borderRadius: "10px",
-                  padding: "10px 14px",
-                  fontSize: "13px",
-                  color: "#0F172A",
-                  backgroundColor: "#ffffff",
-                  fontFamily: "inherit",
-                  outline: "none",
-                  boxSizing: "border-box",
-                  transition: "border-color 0.15s, box-shadow 0.15s",
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "#818CF8";
-                  e.currentTarget.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.1)";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "#E2E8F0";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-              />
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 600, color: "#475569" }} htmlFor="youtube-url">
+                  YouTube URL <span style={{ fontWeight: 400, color: "#94A3B8" }}>(optional — for outreach)</span>
+                </label>
+                <input
+                  id="youtube-url"
+                  type="url"
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={youtubeUrl}
+                  disabled={isGenerating}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  style={{
+                    width: "100%",
+                    border: "1.5px solid #E2E8F0",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    fontSize: "13px",
+                    color: "#0F172A",
+                    backgroundColor: "#ffffff",
+                    fontFamily: "inherit",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    transition: "border-color 0.15s, box-shadow 0.15s",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#818CF8";
+                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.1)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "#E2E8F0";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 600, color: "#475569" }} htmlFor="linkedin-url">
+                  Founder LinkedIn URL <span style={{ fontWeight: 400, color: "#94A3B8" }}>(optional — helps find email)</span>
+                </label>
+                <input
+                  id="linkedin-url"
+                  type="url"
+                  placeholder="https://linkedin.com/in/founder-name"
+                  value={linkedinUrl}
+                  disabled={isGenerating}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  style={{
+                    width: "100%",
+                    border: "1.5px solid #E2E8F0",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    fontSize: "13px",
+                    color: "#0F172A",
+                    backgroundColor: "#ffffff",
+                    fontFamily: "inherit",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    transition: "border-color 0.15s, box-shadow 0.15s",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#818CF8";
+                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.1)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "#E2E8F0";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                />
+              </div>
             </div>
           )}
 
