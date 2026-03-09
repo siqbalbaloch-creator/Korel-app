@@ -80,6 +80,22 @@ async function scrapeYouTubeChannelEmail(videoId: string): Promise<string | null
 // ─── Source 2a: Infer website URL from company name ──────────────────────────
 
 async function inferWebsiteUrl(company: string): Promise<string | null> {
+  // If company looks like a domain (contains a dot), try it directly first
+  const looksLikeDomain = /^[a-z0-9]([a-z0-9\-]*\.)+[a-z]{2,}$/i.test(company.trim());
+  if (looksLikeDomain) {
+    const directUrl = `https://${company.trim().toLowerCase()}`;
+    try {
+      const res = await fetch(directUrl, {
+        method: "HEAD",
+        signal: AbortSignal.timeout(3000),
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; Korel/1.0)" },
+      });
+      if (res.ok || res.status === 405) return directUrl;
+    } catch {
+      // fall through to slug candidates
+    }
+  }
+
   const slug = company.toLowerCase().replace(/[^a-z0-9]/g, "");
   const candidates = [
     `https://${slug}.com`,
@@ -233,17 +249,24 @@ async function findEmail(
   youtubeVideoId?: string,
   websiteUrl?: string,
 ): Promise<EmailResult> {
+  console.log(`[findEmail] called for: ${firstName} ${lastName} | company: ${company} | videoId: ${youtubeVideoId ?? "none"}`);
+
   // Source 1: YouTube channel description
   if (youtubeVideoId) {
     const email = await scrapeYouTubeChannelEmail(youtubeVideoId);
+    console.log(`[findEmail] youtube_channel → ${email ?? "null"}`);
     if (email) return { email, confidence: 95, source: "youtube_channel" };
     await sleep(500);
+  } else {
+    console.log(`[findEmail] youtube_channel → skipped (no videoId)`);
   }
 
   // Source 2: Website (infer URL if not provided)
   const effectiveWebsite = websiteUrl || (await inferWebsiteUrl(company));
+  console.log(`[findEmail] inferWebsiteUrl → ${effectiveWebsite ?? "null"}`);
   if (effectiveWebsite) {
     const email = await scrapeWebsiteEmail(effectiveWebsite);
+    console.log(`[findEmail] website scrape → ${email ?? "null"}`);
     if (email) return { email, confidence: 90, source: "website" };
     await sleep(500);
   }
@@ -251,16 +274,23 @@ async function findEmail(
   // Source 3: Apollo.io
   if (process.env.APOLLO_API_KEY) {
     const result = await findEmailApollo(firstName, lastName, company);
+    console.log(`[findEmail] apollo → ${result.email ?? "null"} (confidence: ${result.confidence})`);
     if (result.email) return { email: result.email, confidence: result.confidence, source: "apollo" };
     await sleep(500);
+  } else {
+    console.log(`[findEmail] apollo → skipped (no APOLLO_API_KEY)`);
   }
 
   // Source 4: Hunter.io
   if (process.env.HUNTER_API_KEY) {
     const result = await findEmailHunter(firstName, lastName, company);
+    console.log(`[findEmail] hunter → ${result.email ?? "null"} (confidence: ${result.confidence})`);
     if (result.email) return { email: result.email, confidence: result.confidence, source: "hunter" };
+  } else {
+    console.log(`[findEmail] hunter → skipped (no HUNTER_API_KEY)`);
   }
 
+  console.log(`[findEmail] all sources exhausted → no email found`);
   return { email: null, confidence: 0, source: "none" };
 }
 
