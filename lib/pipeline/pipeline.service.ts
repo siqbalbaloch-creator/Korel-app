@@ -515,7 +515,7 @@ Extract and return ONLY a JSON object with these fields:
   "firstName": "founder's first name (string)",
   "lastName": "founder's last name or empty string",
   "company": "their company name (string)",
-  "linkedinUrl": "best-guess LinkedIn profile URL (e.g. 'linkedin.com/in/firstname-lastname') inferred from their name and company, or null if you cannot make a reasonable guess",
+  "linkedinUrl": "LinkedIn profile URL. For well-known public figures provide with high confidence (e.g. Alex Hormozi → 'linkedin.com/in/alexhormozi', Sam Altman → 'linkedin.com/in/sama'). For all others make your best guess using 'linkedin.com/in/firstname-lastname' or 'linkedin.com/in/firstname-lastname-company' patterns. Only return null if you have absolutely no basis to guess.",
   "interviewTopic": "one sentence describing what this interview is mainly about — their journey, product, or key insight (max 15 words)",
   "specificMoment": "the single most interesting or surprising thing they said — write it as 'you talked about X' or 'you mentioned Y' (max 20 words)",
   "isFounderInterview": true or false,
@@ -577,9 +577,10 @@ Return ONLY the JSON object. No explanation. No markdown.`;
 }
 
 // ─── Create lead from a manually generated pack ───────────────────────────────
-// NOTE: This runs fire-and-forget (void) from packs/route.ts, so it MUST complete
-// quickly. Email finding is intentionally NOT done here — the cron's runPipeline()
-// picks up PENDING_EMAIL leads and runs the waterfall asynchronously.
+// Runs fire-and-forget (void) from packs/route.ts. Creates the lead immediately
+// as PENDING_EMAIL so data is never lost, then runs the email waterfall inline
+// while Vercel still has execution budget. If Vercel kills the function before
+// the waterfall finishes, the lead stays PENDING_EMAIL and the cron retries it.
 
 export async function createLeadFromPack(
   options: CreateLeadFromPackOptions,
@@ -624,10 +625,11 @@ export async function createLeadFromPack(
     });
     pvId = pv.id;
 
-    // Create the OutreachLead immediately with PENDING_EMAIL status.
-    // Email finding runs later via the cron's runPipeline() to avoid Vercel
-    // function timeout killing the process mid-waterfall.
-    await prisma.outreachLead.create({
+    const resolvedLinkedinUrl = explicitLinkedinUrl || founderInfo.linkedinUrl;
+
+    // Create the OutreachLead immediately as PENDING_EMAIL — safe even if Vercel
+    // kills us mid-waterfall below.
+    const newLead = await prisma.outreachLead.create({
       data: {
         pipelineVideoId: pv.id,
         firstName: founderInfo.firstName,
@@ -635,7 +637,7 @@ export async function createLeadFromPack(
         email: null,
         emailConfidence: null,
         emailSource: null,
-        linkedinUrl: explicitLinkedinUrl || founderInfo.linkedinUrl,
+        linkedinUrl: resolvedLinkedinUrl,
         company: founderInfo.company,
         interviewSource: youtubeUrl ? "YouTube" : "Manual",
         interviewTopic: founderInfo.interviewTopic,
@@ -647,6 +649,7 @@ export async function createLeadFromPack(
         revenueStage: founderInfo.revenueStage,
         status: "PENDING_EMAIL",
       },
+      select: { id: true },
     });
 
     await prisma.pipelineVideo.update({
@@ -654,7 +657,32 @@ export async function createLeadFromPack(
       data: { status: "READY" },
     });
 
-    console.log(`[createLeadFromPack] done — lead created PENDING_EMAIL for ${founderInfo.firstName} ${founderInfo.lastName}`);
+    // Run email waterfall inline — Vercel keeps the execution context alive for
+    // a window after the HTTP response. Fast sources (YouTube, website, Prospeo)
+    // typically finish in <10s. If killed mid-way, the lead stays PENDING_EMAIL
+    // and the cron retries. The attempt log captures what was tried either way.
+    console.log(`[createLeadFromPack] lead created, starting email waterfall for ${founderInfo.firstName}`);
+    const emailResult = await findEmail(
+      founderInfo.firstName,
+      founderInfo.lastName,
+      founderInfo.company,
+      matchedVideoId ?? undefined,
+      undefined,
+      resolvedLinkedinUrl ?? undefined,
+    );
+
+    await prisma.outreachLead.update({
+      where: { id: newLead.id },
+      data: {
+        email: emailResult.email,
+        emailConfidence: emailResult.email && emailResult.confidence > 0 ? emailResult.confidence : null,
+        emailSource: emailResult.email ? emailResult.source : null,
+        emailAttemptLog: emailResult.attemptLog,
+        status: emailResult.email ? "EMAIL_FOUND" : "NO_EMAIL",
+      },
+    });
+
+    console.log(`[createLeadFromPack] done — ${founderInfo.firstName} ${founderInfo.lastName} email=${emailResult.email ?? "not found"} source=${emailResult.source}`);
   } catch (err) {
     console.error(`[createLeadFromPack] FAILED packId=${options.packId}:`, err);
     logger.error("pipeline.createLeadFromPack.failed", {
