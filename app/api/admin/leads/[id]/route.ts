@@ -4,6 +4,29 @@ import { prisma } from "@/lib/prisma";
 
 type Params = { params: Promise<{ id: string }> };
 
+export async function GET(_request: NextRequest, { params }: Params) {
+  const session = await getServerAuthSession();
+  if (!session?.user?.id || session.user.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const lead = await prisma.outreachLead.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      status: true,
+      email: true,
+      emailConfidence: true,
+      emailSource: true,
+      emailAttemptLog: true,
+    },
+  });
+
+  if (!lead) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(lead);
+}
+
 export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await getServerAuthSession();
   if (!session?.user?.id || session.user.role !== "admin") {

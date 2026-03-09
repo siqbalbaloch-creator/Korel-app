@@ -564,10 +564,39 @@ Return ONLY the JSON object. No explanation. No markdown.`;
       : `https://${rawLinkedinUrl}`
     : null;
 
+  const rawCompany = (parsed.company ?? "").trim();
+
+  // Validate extraction quality — reject obvious GPT failures
+  const INVALID_FIRST_NAMES = new Set([
+    "lots", "unknown", "founder", "guest", "host", "speaker",
+    "interviewee", "person", "someone", "name", "n/a",
+  ]);
+  const INVALID_COMPANIES = new Set([
+    "n/a", "unknown", "none", "not mentioned", "not specified", "",
+  ]);
+  const firstNameInvalid = INVALID_FIRST_NAMES.has(firstName.toLowerCase());
+  const companyInvalid = INVALID_COMPANIES.has(rawCompany.toLowerCase());
+  if (firstNameInvalid || companyInvalid) {
+    console.log(
+      `[extractFounderInfo] Skipping lead — invalid extraction: firstName="${firstName}" company="${rawCompany}"`,
+    );
+    return {
+      firstName,
+      lastName: parsed.lastName ?? "",
+      company: rawCompany || "Unknown",
+      linkedinUrl,
+      interviewTopic: parsed.interviewTopic ?? "their entrepreneurial journey",
+      specificMoment: parsed.specificMoment ?? "your insights on building a business",
+      isFounderInterview: false,
+      monthlyRevenue: rawRevenue,
+      revenueStage,
+    };
+  }
+
   return {
     firstName,
     lastName: parsed.lastName ?? "",
-    company: parsed.company ?? "Unknown",
+    company: rawCompany || "Unknown",
     linkedinUrl,
     interviewTopic: parsed.interviewTopic ?? "their entrepreneurial journey",
     specificMoment: parsed.specificMoment ?? "your insights on building a business",

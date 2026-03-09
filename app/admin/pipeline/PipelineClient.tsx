@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { buildEmailBody } from "@/components/admin/gmailSender";
 
 type RevenueStage = "pre-revenue" | "early" | "growing" | "scaled";
@@ -122,6 +122,7 @@ function LeadCard({
   onApprove,
   onSkip,
   onEmailEdit,
+  onLeadUpdate,
   expanded,
   onToggleExpand,
   approved,
@@ -132,6 +133,7 @@ function LeadCard({
   onApprove: (id: string) => void;
   onSkip: (id: string) => void;
   onEmailEdit: (id: string, email: string) => void;
+  onLeadUpdate: (id: string, patch: Partial<Lead>) => void;
   expanded: string | null;
   onToggleExpand: (section: string) => void;
   approved: boolean;
@@ -140,6 +142,40 @@ function LeadCard({
 }) {
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailInput, setEmailInput] = useState(lead.email ?? "");
+
+  // Poll every 5s while PENDING_EMAIL — waterfall runs async after lead creation
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (lead.status !== "PENDING_EMAIL") return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/admin/leads/${lead.id}`);
+        if (!res.ok) return;
+        const data = await res.json() as {
+          status: string;
+          email: string | null;
+          emailConfidence: number | null;
+          emailSource: string | null;
+          emailAttemptLog: AttemptLogEntry[] | null;
+        };
+        if (data.status !== "PENDING_EMAIL") {
+          if (pollRef.current) clearInterval(pollRef.current);
+          onLeadUpdate(lead.id, {
+            status: data.status,
+            email: data.email,
+            emailConfidence: data.emailConfidence,
+            emailSource: data.emailSource,
+            emailAttemptLog: data.emailAttemptLog,
+          });
+        }
+      } catch {
+        // silent — will retry next interval
+      }
+    }, 5000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead.id, lead.status]);
+
 
   const confidenceColor =
     (lead.emailConfidence ?? 0) >= 70
@@ -273,6 +309,12 @@ function LeadCard({
               >
                 ✏️
               </button>
+            </div>
+          ) : lead.status === "PENDING_EMAIL" ? (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 text-xs text-neutral-400 animate-pulse">
+                🔄 Finding email…
+              </span>
             </div>
           ) : (
             <div className="space-y-1.5">
@@ -469,6 +511,10 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
         l.id === id ? { ...l, email: email || null, status: email ? "EMAIL_FOUND" : "NO_EMAIL" } : l,
       ),
     );
+  }
+
+  function updateLead(id: string, patch: Partial<Lead>) {
+    setLocalLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   }
 
   async function approveAll() {
@@ -854,6 +900,7 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
                   onApprove={approveLead}
                   onSkip={skipLead}
                   onEmailEdit={editEmail}
+                  onLeadUpdate={updateLead}
                   expanded={expandedSection}
                   onToggleExpand={setExpandedSection}
                   approved={lead.status === "APPROVED"}
