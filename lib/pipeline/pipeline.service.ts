@@ -391,6 +391,72 @@ async function findEmailHunter(
   }
 }
 
+// ─── Source 7: Twitter/X bio via Nitter ──────────────────────────────────────
+
+async function inferTwitterHandle(
+  firstName: string,
+  lastName: string,
+  company: string,
+): Promise<string | null> {
+  try {
+    const res = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0,
+      max_tokens: 50,
+      messages: [
+        {
+          role: "user",
+          content: `What is the most likely Twitter/X handle for a founder named ${firstName}${lastName ? " " + lastName : ""} who runs a company called "${company}"? Reply with ONLY the handle (no @), or "unknown" if you cannot reasonably guess.`,
+        },
+      ],
+    });
+    const raw = res.choices[0]?.message?.content?.trim().replace(/^@/, "").toLowerCase() ?? "";
+    if (!raw || raw === "unknown" || raw.length < 2 || raw.length > 50 || /\s/.test(raw)) return null;
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
+// Nitter instances to try in order (public Twitter mirrors, no API key needed)
+const NITTER_INSTANCES = ["nitter.net", "nitter.privacydev.net", "nitter.1d4.us"];
+
+async function scrapeTwitterBioEmail(
+  firstName: string,
+  lastName: string,
+  company: string,
+): Promise<SourceResult> {
+  const handle = await inferTwitterHandle(firstName, lastName, company);
+  if (!handle) return { email: null, confidence: 0, reason: "could not infer Twitter handle" };
+
+  for (const instance of NITTER_INSTANCES) {
+    try {
+      const res = await fetch(`https://${instance}/${handle}`, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; Korel/1.0)" },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!res.ok) continue;
+      const html = await res.text();
+
+      // Nitter renders bio in .profile-bio or .profile-card-desc
+      const bioMatch =
+        html.match(/class="[^"]*(?:profile-bio|profile-card-desc)[^"]*"[^>]*>([\s\S]*?)<\/p>/i) ??
+        html.match(/class="[^"]*bio[^"]*"[^>]*>([\s\S]*?)<\/(?:p|div)>/i);
+      const bioText = bioMatch ? bioMatch[1].replace(/<[^>]+>/g, " ") : html.slice(0, 8000);
+
+      const emails = bioText.match(EMAIL_RE) ?? [];
+      const email = emails[0] ?? null;
+      if (email) {
+        return { email, confidence: 70, reason: `found in @${handle} bio via ${instance}` };
+      }
+      return { email: null, confidence: 0, reason: `@${handle} found on ${instance}, no email in bio` };
+    } catch {
+      // instance unreachable — try next
+    }
+  }
+  return { email: null, confidence: 0, reason: "Nitter unavailable (all instances timed out)" };
+}
+
 // ─── Waterfall findEmail ──────────────────────────────────────────────────────
 
 async function findEmail(
@@ -490,6 +556,17 @@ async function findEmail(
       return { email: result.email, confidence: result.confidence, source: "hunter", attemptLog: log };
     }
     log.push({ source: "hunter", result: "failed", detail: result.reason });
+  }
+
+  // Source 7: Twitter/X bio via Nitter (no API key — public mirror, last resort)
+  {
+    const result = await scrapeTwitterBioEmail(firstName, lastName, company);
+    console.log(`[findEmail] twitter_bio → ${result.email ?? "null"} (${result.reason})`);
+    if (result.email) {
+      log.push({ source: "twitter_bio", result: "found", detail: result.reason });
+      return { email: result.email, confidence: result.confidence, source: "twitter_bio", attemptLog: log };
+    }
+    log.push({ source: "twitter_bio", result: "failed", detail: result.reason });
   }
 
   console.log(`[findEmail] all sources exhausted → no email found`);

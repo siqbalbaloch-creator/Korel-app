@@ -142,6 +142,7 @@ function LeadCard({
 }) {
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailInput, setEmailInput] = useState(lead.email ?? "");
+  const [showFindPanel, setShowFindPanel] = useState(false);
 
   // Poll every 5s while PENDING_EMAIL — waterfall runs async after lead creation
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -294,7 +295,9 @@ function LeadCard({
                               ? "🎯 Hunter"
                               : lead.emailSource === "manual"
                                 ? "✏️ Manual"
-                                : lead.emailSource}
+                                : lead.emailSource === "twitter_bio"
+                                  ? "🐦 Twitter"
+                                  : lead.emailSource}
                 </span>
               )}
               {lead.emailConfidence !== null && (
@@ -318,11 +321,17 @@ function LeadCard({
             </div>
           ) : (
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-neutral-400">No email found</span>
                 <button
+                  onClick={() => setShowFindPanel((v) => !v)}
+                  className="text-xs text-indigo-600 hover:underline font-medium"
+                >
+                  {showFindPanel ? "▲ Close" : "🔍 Find email"}
+                </button>
+                <button
                   onClick={() => setEditingEmail(true)}
-                  className="text-xs text-indigo-600 hover:underline"
+                  className="text-xs text-neutral-500 hover:underline"
                 >
                   + Add manually
                 </button>
@@ -335,6 +344,45 @@ function LeadCard({
                   </button>
                 )}
               </div>
+              {showFindPanel && (
+                <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-2.5 space-y-1.5">
+                  <p className="text-xs font-semibold text-indigo-700 mb-1">Quick search — open in new tab, copy email, paste above</p>
+                  {[
+                    {
+                      icon: "🐦",
+                      label: "Twitter",
+                      href: `https://twitter.com/search?q=${encodeURIComponent(`${lead.firstName} ${lead.company}`)}`,
+                    },
+                    {
+                      icon: "🌐",
+                      label: "Google",
+                      href: `https://google.com/search?q=${encodeURIComponent(`${lead.firstName} ${lead.company} email contact`)}`,
+                    },
+                    {
+                      icon: "💼",
+                      label: "LinkedIn",
+                      href: `https://linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${lead.firstName} ${lead.company}`)}`,
+                    },
+                    {
+                      icon: "📺",
+                      label: "YouTube video",
+                      href: lead.pipelineVideo.youtubeUrl,
+                    },
+                  ].map(({ icon, label, href }) => (
+                    <a
+                      key={label}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 rounded-md border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50 transition-colors"
+                    >
+                      <span>{icon}</span>
+                      <span>{label}</span>
+                      <span className="ml-auto text-indigo-300">↗</span>
+                    </a>
+                  ))}
+                </div>
+              )}
               {expanded === `${lead.id}-attemptlog` && lead.emailAttemptLog && (
                 <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-2.5 space-y-1">
                   {lead.emailAttemptLog.map((entry, i) => (
