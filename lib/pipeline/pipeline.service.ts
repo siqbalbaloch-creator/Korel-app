@@ -169,7 +169,87 @@ async function scrapeWebsiteEmail(websiteUrl: string): Promise<string | null> {
   return null;
 }
 
-// ─── Source 3: Apollo.io ─────────────────────────────────────────────────────
+// ─── Source 3: Snov.io ───────────────────────────────────────────────────────
+
+// In-memory token cache — refreshed after 55 minutes (token TTL is 1 hour)
+let snovToken: string | null = null;
+let snovTokenExpiresAt = 0;
+
+async function getSnovToken(): Promise<string | null> {
+  const clientId = process.env.SNOVIO_CLIENT_ID;
+  const clientSecret = process.env.SNOVIO_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+
+  if (snovToken && Date.now() < snovTokenExpiresAt) return snovToken;
+
+  try {
+    const res = await fetch("https://api.snov.io/v1/oauth/access_token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "client_credentials",
+        client_id: clientId,
+        client_secret: clientSecret,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { access_token?: string };
+    if (!data.access_token) return null;
+    snovToken = data.access_token;
+    snovTokenExpiresAt = Date.now() + 55 * 60 * 1000; // 55 min
+    return snovToken;
+  } catch {
+    return null;
+  }
+}
+
+async function findEmailSnov(
+  firstName: string,
+  lastName: string,
+  company: string,
+  websiteUrl: string | null,
+): Promise<{ email: string | null; confidence: number }> {
+  if (!process.env.SNOVIO_CLIENT_ID) return { email: null, confidence: 0 };
+
+  // Snov.io needs a domain — derive from website URL or infer from company
+  const effectiveUrl = websiteUrl ?? (await inferWebsiteUrl(company));
+  if (!effectiveUrl) return { email: null, confidence: 0 };
+
+  // Strip protocol and path to get bare domain (e.g. "posties.com")
+  const domain = effectiveUrl.replace(/^https?:\/\//, "").split("/")[0];
+
+  const token = await getSnovToken();
+  if (!token) return { email: null, confidence: 0 };
+
+  try {
+    const res = await fetch("https://api.snov.io/v1/get-emails-from-name", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        access_token: token,
+        firstName,
+        lastName: lastName || "",
+        domain,
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.log(`[findEmailSnov] HTTP ${res.status}: ${errText.slice(0, 200)}`);
+      return { email: null, confidence: 0 };
+    }
+    const data = (await res.json()) as {
+      data?: Array<{ email?: string; emailQuality?: number }>;
+    };
+    const first = data.data?.[0];
+    if (!first?.email) return { email: null, confidence: 0 };
+    // emailQuality is 0–100; map to our confidence scale
+    return { email: first.email, confidence: first.emailQuality ?? 75 };
+  } catch {
+    return { email: null, confidence: 0 };
+  }
+}
+
+// ─── Source 4: Apollo.io ─────────────────────────────────────────────────────
 
 async function findEmailApollo(
   firstName: string,
@@ -185,16 +265,20 @@ async function findEmailApollo(
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": "no-cache",
+        "X-Api-Key": apiKey,
       },
       body: JSON.stringify({
         first_name: firstName,
         last_name: lastName || "",
         organization_name: company,
-        api_key: apiKey,
         reveal_personal_emails: true,
       }),
     });
-    if (!res.ok) return { email: null, confidence: 0 };
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.log(`[findEmailApollo] HTTP ${res.status}: ${errText.slice(0, 200)}`);
+      return { email: null, confidence: 0 };
+    }
     const data = (await res.json()) as { person?: { email?: string } };
     const email = data.person?.email ?? null;
     return { email, confidence: email ? 85 : 0 };
@@ -203,7 +287,7 @@ async function findEmailApollo(
   }
 }
 
-// ─── Source 4: Hunter.io ─────────────────────────────────────────────────────
+// ─── Source 5: Hunter.io ─────────────────────────────────────────────────────
 
 async function findEmailHunter(
   firstName: string,
@@ -265,7 +349,7 @@ async function findEmail(
     console.log(`[findEmail] youtube_channel → skipped (no videoId)`);
   }
 
-  // Source 2: Website (infer URL if not provided)
+  // Source 2: Website scrape (infer URL if not provided; reused by Snov.io below)
   const effectiveWebsite = websiteUrl || (await inferWebsiteUrl(company));
   console.log(`[findEmail] inferWebsiteUrl → ${effectiveWebsite ?? "null"}`);
   if (effectiveWebsite) {
@@ -275,7 +359,17 @@ async function findEmail(
     await sleep(500);
   }
 
-  // Source 3: Apollo.io
+  // Source 3: Snov.io (reuses effectiveWebsite so no double inferWebsiteUrl call)
+  if (process.env.SNOVIO_CLIENT_ID) {
+    const result = await findEmailSnov(firstName, lastName, company, effectiveWebsite ?? null);
+    console.log(`[findEmail] snov → ${result.email ?? "null"} (confidence: ${result.confidence})`);
+    if (result.email) return { email: result.email, confidence: result.confidence, source: "snov" };
+    await sleep(500);
+  } else {
+    console.log(`[findEmail] snov → skipped (no SNOVIO_CLIENT_ID)`);
+  }
+
+  // Source 4: Apollo.io
   if (process.env.APOLLO_API_KEY) {
     const result = await findEmailApollo(firstName, lastName, company);
     console.log(`[findEmail] apollo → ${result.email ?? "null"} (confidence: ${result.confidence})`);
@@ -285,7 +379,7 @@ async function findEmail(
     console.log(`[findEmail] apollo → skipped (no APOLLO_API_KEY)`);
   }
 
-  // Source 4: Hunter.io
+  // Source 5: Hunter.io
   if (process.env.HUNTER_API_KEY) {
     const result = await findEmailHunter(firstName, lastName, company);
     console.log(`[findEmail] hunter → ${result.email ?? "null"} (confidence: ${result.confidence})`);
@@ -354,8 +448,12 @@ Return ONLY the JSON object. No explanation. No markdown.`;
               ? "growing"
               : "scaled";
 
+  const rawFirstName = parsed.firstName?.trim();
+  const firstName =
+    !rawFirstName || rawFirstName.toLowerCase() === "unknown" ? "Founder" : rawFirstName;
+
   return {
-    firstName: parsed.firstName ?? "Founder",
+    firstName,
     lastName: parsed.lastName ?? "",
     company: parsed.company ?? "Unknown",
     interviewTopic: parsed.interviewTopic ?? "their entrepreneurial journey",
