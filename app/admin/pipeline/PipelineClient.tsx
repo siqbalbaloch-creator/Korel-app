@@ -5,6 +5,12 @@ import { buildEmailBody } from "@/components/admin/gmailSender";
 
 type RevenueStage = "pre-revenue" | "early" | "growing" | "scaled";
 
+type AttemptLogEntry = {
+  source: string;
+  result: "found" | "skipped" | "failed";
+  detail: string;
+};
+
 type Lead = {
   id: string;
   firstName: string;
@@ -12,6 +18,8 @@ type Lead = {
   email: string | null;
   emailConfidence: number | null;
   emailSource: string | null;
+  emailAttemptLog: AttemptLogEntry[] | null;
+  linkedinUrl: string | null;
   company: string;
   interviewSource: string;
   interviewTopic: string;
@@ -219,13 +227,17 @@ function LeadCard({
                     ? "📺 YouTube"
                     : lead.emailSource === "website"
                       ? "🌐 Website"
-                      : lead.emailSource === "apollo"
-                        ? "🔍 Apollo"
-                        : lead.emailSource === "hunter"
-                          ? "🎯 Hunter"
-                          : lead.emailSource === "manual"
-                            ? "✏️ Manual"
-                            : lead.emailSource}
+                      : lead.emailSource === "prospeo"
+                        ? "🔗 Prospeo"
+                        : lead.emailSource === "snov"
+                          ? "❄️ Snov"
+                          : lead.emailSource === "apollo"
+                            ? "🔍 Apollo"
+                            : lead.emailSource === "hunter"
+                              ? "🎯 Hunter"
+                              : lead.emailSource === "manual"
+                                ? "✏️ Manual"
+                                : lead.emailSource}
                 </span>
               )}
               {lead.emailConfidence !== null && (
@@ -242,14 +254,37 @@ function LeadCard({
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-neutral-400">No email found</span>
-              <button
-                onClick={() => setEditingEmail(true)}
-                className="text-xs text-indigo-600 hover:underline"
-              >
-                + Add manually
-              </button>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-neutral-400">No email found</span>
+                <button
+                  onClick={() => setEditingEmail(true)}
+                  className="text-xs text-indigo-600 hover:underline"
+                >
+                  + Add manually
+                </button>
+                {lead.emailAttemptLog && lead.emailAttemptLog.length > 0 && (
+                  <button
+                    onClick={() => onToggleExpand(`${lead.id}-attemptlog`)}
+                    className="text-xs text-neutral-400 hover:text-neutral-600 underline"
+                  >
+                    {expanded === `${lead.id}-attemptlog` ? "▲ Hide details" : "▼ Why no email?"}
+                  </button>
+                )}
+              </div>
+              {expanded === `${lead.id}-attemptlog` && lead.emailAttemptLog && (
+                <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-2.5 space-y-1">
+                  {lead.emailAttemptLog.map((entry, i) => (
+                    <div key={i} className="flex items-start gap-1.5 text-xs">
+                      <span className="shrink-0 w-3">
+                        {entry.result === "found" ? "✅" : entry.result === "skipped" ? "⏭" : "❌"}
+                      </span>
+                      <span className="font-medium text-neutral-600 capitalize w-16 shrink-0">{entry.source}</span>
+                      <span className="text-neutral-400">{entry.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

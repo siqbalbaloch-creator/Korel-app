@@ -26,6 +26,7 @@ type FounderInfo = {
   firstName: string;
   lastName: string;
   company: string;
+  linkedinUrl: string | null;
   interviewTopic: string;
   specificMoment: string;
   isFounderInterview: boolean;
@@ -33,10 +34,23 @@ type FounderInfo = {
   revenueStage: RevenueStage;
 };
 
+export type AttemptLogEntry = {
+  source: string;
+  result: "found" | "skipped" | "failed";
+  detail: string;
+};
+
+type SourceResult = {
+  email: string | null;
+  confidence: number;
+  reason: string;
+};
+
 type EmailResult = {
   email: string | null;
   confidence: number;
   source: string;
+  attemptLog: AttemptLogEntry[];
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -206,20 +220,16 @@ async function getSnovToken(): Promise<string | null> {
 async function findEmailSnov(
   firstName: string,
   lastName: string,
-  company: string,
   websiteUrl: string | null,
-): Promise<{ email: string | null; confidence: number }> {
-  if (!process.env.SNOVIO_CLIENT_ID) return { email: null, confidence: 0 };
+): Promise<SourceResult> {
+  if (!process.env.SNOVIO_CLIENT_ID) return { email: null, confidence: 0, reason: "no API key" };
+  // websiteUrl is pre-resolved by findEmail() — don't call inferWebsiteUrl again
+  if (!websiteUrl) return { email: null, confidence: 0, reason: "no domain resolved" };
 
-  // Snov.io needs a domain — derive from website URL or infer from company
-  const effectiveUrl = websiteUrl ?? (await inferWebsiteUrl(company));
-  if (!effectiveUrl) return { email: null, confidence: 0 };
-
-  // Strip protocol and path to get bare domain (e.g. "posties.com")
-  const domain = effectiveUrl.replace(/^https?:\/\//, "").split("/")[0];
+  const domain = websiteUrl.replace(/^https?:\/\//, "").split("/")[0];
 
   const token = await getSnovToken();
-  if (!token) return { email: null, confidence: 0 };
+  if (!token) return { email: null, confidence: 0, reason: "auth failed" };
 
   try {
     const res = await fetch("https://api.snov.io/v1/get-emails-from-name", {
@@ -235,17 +245,48 @@ async function findEmailSnov(
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       console.log(`[findEmailSnov] HTTP ${res.status}: ${errText.slice(0, 200)}`);
-      return { email: null, confidence: 0 };
+      return { email: null, confidence: 0, reason: `API error ${res.status}` };
     }
     const data = (await res.json()) as {
       data?: Array<{ email?: string; emailQuality?: number }>;
     };
     const first = data.data?.[0];
-    if (!first?.email) return { email: null, confidence: 0 };
-    // emailQuality is 0–100; map to our confidence scale
-    return { email: first.email, confidence: first.emailQuality ?? 75 };
+    if (!first?.email) return { email: null, confidence: 0, reason: `${domain} found, 0 emails returned` };
+    return { email: first.email, confidence: first.emailQuality ?? 75, reason: "found" };
   } catch {
-    return { email: null, confidence: 0 };
+    return { email: null, confidence: 0, reason: "request failed" };
+  }
+}
+
+// ─── Source 3: Prospeo.io (LinkedIn → email) ─────────────────────────────────
+
+async function findEmailProspeo(linkedinUrl: string): Promise<SourceResult> {
+  const apiKey = process.env.PROSPEO_API_KEY;
+  if (!apiKey) return { email: null, confidence: 0, reason: "no API key" };
+
+  try {
+    const res = await fetch("https://api.prospeo.io/linkedin-email-finder", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-KEY": apiKey,
+      },
+      body: JSON.stringify({ url: linkedinUrl }),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.log(`[findEmailProspeo] HTTP ${res.status}: ${errText.slice(0, 200)}`);
+      return { email: null, confidence: 0, reason: `API error ${res.status}` };
+    }
+    const data = (await res.json()) as {
+      response?: { email?: { value?: string; type?: string } };
+      error?: boolean;
+    };
+    if (data.error) return { email: null, confidence: 0, reason: "LinkedIn profile not found" };
+    const email = data.response?.email?.value ?? null;
+    return { email, confidence: email ? 90 : 0, reason: email ? "found" : "no email on LinkedIn profile" };
+  } catch {
+    return { email: null, confidence: 0, reason: "request failed" };
   }
 }
 
@@ -255,9 +296,9 @@ async function findEmailApollo(
   firstName: string,
   lastName: string,
   company: string,
-): Promise<{ email: string | null; confidence: number }> {
+): Promise<SourceResult> {
   const apiKey = process.env.APOLLO_API_KEY;
-  if (!apiKey) return { email: null, confidence: 0 };
+  if (!apiKey) return { email: null, confidence: 0, reason: "no API key" };
 
   try {
     const res = await fetch("https://api.apollo.io/v1/people/match", {
@@ -277,13 +318,14 @@ async function findEmailApollo(
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       console.log(`[findEmailApollo] HTTP ${res.status}: ${errText.slice(0, 200)}`);
-      return { email: null, confidence: 0 };
+      const reason = res.status === 403 ? "paid plan required" : `API error ${res.status}`;
+      return { email: null, confidence: 0, reason };
     }
     const data = (await res.json()) as { person?: { email?: string } };
     const email = data.person?.email ?? null;
-    return { email, confidence: email ? 85 : 0 };
+    return { email, confidence: email ? 85 : 0, reason: email ? "found" : "no match found" };
   } catch {
-    return { email: null, confidence: 0 };
+    return { email: null, confidence: 0, reason: "request failed" };
   }
 }
 
@@ -293,18 +335,18 @@ async function findEmailHunter(
   firstName: string,
   lastName: string,
   company: string,
-): Promise<{ email: string | null; confidence: number }> {
+): Promise<SourceResult> {
   const apiKey = process.env.HUNTER_API_KEY;
-  if (!apiKey) return { email: null, confidence: 0 };
+  if (!apiKey) return { email: null, confidence: 0, reason: "no API key" };
 
   try {
     const domainRes = await fetch(
       `https://api.hunter.io/v2/domain-search?company=${encodeURIComponent(company)}&api_key=${apiKey}&limit=1`,
     );
-    if (!domainRes.ok) return { email: null, confidence: 0 };
+    if (!domainRes.ok) return { email: null, confidence: 0, reason: `domain lookup error ${domainRes.status}` };
     const domainData = (await domainRes.json()) as { data?: { domain?: string } };
     const domain = domainData.data?.domain;
-    if (!domain) return { email: null, confidence: 0 };
+    if (!domain) return { email: null, confidence: 0, reason: "company domain not found" };
 
     await sleep(1000);
 
@@ -315,16 +357,18 @@ async function findEmailHunter(
       api_key: apiKey,
     });
     const emailRes = await fetch(`https://api.hunter.io/v2/email-finder?${params}`);
-    if (!emailRes.ok) return { email: null, confidence: 0 };
+    if (!emailRes.ok) return { email: null, confidence: 0, reason: `email finder error ${emailRes.status}` };
     const emailData = (await emailRes.json()) as {
       data?: { email?: string; score?: number };
     };
+    const email = emailData.data?.email ?? null;
     return {
-      email: emailData.data?.email ?? null,
+      email,
       confidence: emailData.data?.score ?? 0,
+      reason: email ? "found" : `${domain} found, 0 emails indexed`,
     };
   } catch {
-    return { email: null, confidence: 0 };
+    return { email: null, confidence: 0, reason: "request failed" };
   }
 }
 
@@ -336,60 +380,101 @@ async function findEmail(
   company: string,
   youtubeVideoId?: string,
   websiteUrl?: string,
+  linkedinUrl?: string,
 ): Promise<EmailResult> {
   console.log(`[findEmail] called for: ${firstName} ${lastName} | company: ${company} | videoId: ${youtubeVideoId ?? "none"}`);
+  const log: AttemptLogEntry[] = [];
 
   // Source 1: YouTube channel description
   if (youtubeVideoId) {
     const email = await scrapeYouTubeChannelEmail(youtubeVideoId);
     console.log(`[findEmail] youtube_channel → ${email ?? "null"}`);
-    if (email) return { email, confidence: 95, source: "youtube_channel" };
+    if (email) {
+      log.push({ source: "youtube_channel", result: "found", detail: "email in channel description" });
+      return { email, confidence: 95, source: "youtube_channel", attemptLog: log };
+    }
+    log.push({ source: "youtube_channel", result: "failed", detail: "no email in channel description" });
     await sleep(500);
   } else {
-    console.log(`[findEmail] youtube_channel → skipped (no videoId)`);
+    log.push({ source: "youtube_channel", result: "skipped", detail: "no video URL provided" });
   }
 
-  // Source 2: Website scrape (infer URL if not provided; reused by Snov.io below)
+  // Source 2: Website scrape (URL inferred once and reused by Snov below)
   const effectiveWebsite = websiteUrl || (await inferWebsiteUrl(company));
   console.log(`[findEmail] inferWebsiteUrl → ${effectiveWebsite ?? "null"}`);
   if (effectiveWebsite) {
+    const domain = effectiveWebsite.replace(/^https?:\/\//, "").split("/")[0];
     const email = await scrapeWebsiteEmail(effectiveWebsite);
     console.log(`[findEmail] website scrape → ${email ?? "null"}`);
-    if (email) return { email, confidence: 90, source: "website" };
-    await sleep(500);
-  }
-
-  // Source 3: Snov.io (reuses effectiveWebsite so no double inferWebsiteUrl call)
-  if (process.env.SNOVIO_CLIENT_ID) {
-    const result = await findEmailSnov(firstName, lastName, company, effectiveWebsite ?? null);
-    console.log(`[findEmail] snov → ${result.email ?? "null"} (confidence: ${result.confidence})`);
-    if (result.email) return { email: result.email, confidence: result.confidence, source: "snov" };
+    if (email) {
+      log.push({ source: "website", result: "found", detail: `found on ${domain}` });
+      return { email, confidence: 90, source: "website", attemptLog: log };
+    }
+    log.push({ source: "website", result: "failed", detail: `${domain} found, no email on page` });
     await sleep(500);
   } else {
-    console.log(`[findEmail] snov → skipped (no SNOVIO_CLIENT_ID)`);
+    log.push({ source: "website", result: "skipped", detail: "no domain resolved for company" });
   }
 
-  // Source 4: Apollo.io
-  if (process.env.APOLLO_API_KEY) {
+  // Source 3: Prospeo (LinkedIn → email) — most reliable for indie founders
+  if (!process.env.PROSPEO_API_KEY) {
+    log.push({ source: "prospeo", result: "skipped", detail: "no API key" });
+  } else if (!linkedinUrl) {
+    log.push({ source: "prospeo", result: "skipped", detail: "no LinkedIn URL found in transcript" });
+  } else {
+    const result = await findEmailProspeo(linkedinUrl);
+    console.log(`[findEmail] prospeo → ${result.email ?? "null"} (${result.reason})`);
+    if (result.email) {
+      log.push({ source: "prospeo", result: "found", detail: "found via LinkedIn profile" });
+      return { email: result.email, confidence: result.confidence, source: "prospeo", attemptLog: log };
+    }
+    log.push({ source: "prospeo", result: "failed", detail: result.reason });
+    await sleep(500);
+  }
+
+  // Source 4: Snov.io (reuses effectiveWebsite — no second inferWebsiteUrl call)
+  if (!process.env.SNOVIO_CLIENT_ID) {
+    log.push({ source: "snov", result: "skipped", detail: "no API key" });
+  } else {
+    const result = await findEmailSnov(firstName, lastName, effectiveWebsite ?? null);
+    console.log(`[findEmail] snov → ${result.email ?? "null"} (${result.reason})`);
+    if (result.email) {
+      log.push({ source: "snov", result: "found", detail: "found" });
+      return { email: result.email, confidence: result.confidence, source: "snov", attemptLog: log };
+    }
+    log.push({ source: "snov", result: "failed", detail: result.reason });
+    await sleep(500);
+  }
+
+  // Source 5: Apollo.io
+  if (!process.env.APOLLO_API_KEY) {
+    log.push({ source: "apollo", result: "skipped", detail: "no API key" });
+  } else {
     const result = await findEmailApollo(firstName, lastName, company);
-    console.log(`[findEmail] apollo → ${result.email ?? "null"} (confidence: ${result.confidence})`);
-    if (result.email) return { email: result.email, confidence: result.confidence, source: "apollo" };
+    console.log(`[findEmail] apollo → ${result.email ?? "null"} (${result.reason})`);
+    if (result.email) {
+      log.push({ source: "apollo", result: "found", detail: "found" });
+      return { email: result.email, confidence: result.confidence, source: "apollo", attemptLog: log };
+    }
+    log.push({ source: "apollo", result: "failed", detail: result.reason });
     await sleep(500);
-  } else {
-    console.log(`[findEmail] apollo → skipped (no APOLLO_API_KEY)`);
   }
 
-  // Source 5: Hunter.io
-  if (process.env.HUNTER_API_KEY) {
-    const result = await findEmailHunter(firstName, lastName, company);
-    console.log(`[findEmail] hunter → ${result.email ?? "null"} (confidence: ${result.confidence})`);
-    if (result.email) return { email: result.email, confidence: result.confidence, source: "hunter" };
+  // Source 6: Hunter.io
+  if (!process.env.HUNTER_API_KEY) {
+    log.push({ source: "hunter", result: "skipped", detail: "no API key" });
   } else {
-    console.log(`[findEmail] hunter → skipped (no HUNTER_API_KEY)`);
+    const result = await findEmailHunter(firstName, lastName, company);
+    console.log(`[findEmail] hunter → ${result.email ?? "null"} (${result.reason})`);
+    if (result.email) {
+      log.push({ source: "hunter", result: "found", detail: "found" });
+      return { email: result.email, confidence: result.confidence, source: "hunter", attemptLog: log };
+    }
+    log.push({ source: "hunter", result: "failed", detail: result.reason });
   }
 
   console.log(`[findEmail] all sources exhausted → no email found`);
-  return { email: null, confidence: 0, source: "none" };
+  return { email: null, confidence: 0, source: "none", attemptLog: log };
 }
 
 // ─── Extract founder info via GPT-4o-mini ─────────────────────────────────────
@@ -412,6 +497,7 @@ Extract and return ONLY a JSON object with these fields:
   "firstName": "founder's first name (string)",
   "lastName": "founder's last name or empty string",
   "company": "their company name (string)",
+  "linkedinUrl": "best-guess LinkedIn profile URL (e.g. 'linkedin.com/in/firstname-lastname') inferred from their name and company, or null if you cannot make a reasonable guess",
   "interviewTopic": "one sentence describing what this interview is mainly about — their journey, product, or key insight (max 15 words)",
   "specificMoment": "the single most interesting or surprising thing they said — write it as 'you talked about X' or 'you mentioned Y' (max 20 words)",
   "isFounderInterview": true or false,
@@ -424,13 +510,13 @@ Return ONLY the JSON object. No explanation. No markdown.`;
   const res = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     temperature: 0.2,
-    max_tokens: 400,
+    max_tokens: 500,
     response_format: { type: "json_object" },
     messages: [{ role: "user", content: prompt }],
   });
 
   const text = res.choices[0]?.message?.content ?? "{}";
-  const parsed = JSON.parse(text) as Partial<FounderInfo> & { monthlyRevenue?: number | null; revenueStage?: string };
+  const parsed = JSON.parse(text) as Partial<FounderInfo> & { monthlyRevenue?: number | null; revenueStage?: string; linkedinUrl?: string | null };
 
   const rawRevenue = typeof parsed.monthlyRevenue === "number" ? parsed.monthlyRevenue : null;
   const validStages: RevenueStage[] = ["pre-revenue", "early", "growing", "scaled"];
@@ -452,10 +538,18 @@ Return ONLY the JSON object. No explanation. No markdown.`;
   const firstName =
     !rawFirstName || rawFirstName.toLowerCase() === "unknown" ? "Founder" : rawFirstName;
 
+  const rawLinkedinUrl = parsed.linkedinUrl?.trim() ?? null;
+  const linkedinUrl = rawLinkedinUrl
+    ? rawLinkedinUrl.startsWith("http")
+      ? rawLinkedinUrl
+      : `https://${rawLinkedinUrl}`
+    : null;
+
   return {
     firstName,
     lastName: parsed.lastName ?? "",
     company: parsed.company ?? "Unknown",
+    linkedinUrl,
     interviewTopic: parsed.interviewTopic ?? "their entrepreneurial journey",
     specificMoment: parsed.specificMoment ?? "your insights on building a business",
     isFounderInterview: parsed.isFounderInterview ?? false,
@@ -523,6 +617,7 @@ export async function createLeadFromPack(
         email: null,
         emailConfidence: null,
         emailSource: null,
+        linkedinUrl: founderInfo.linkedinUrl,
         company: founderInfo.company,
         interviewSource: youtubeUrl ? "YouTube" : "Manual",
         interviewTopic: founderInfo.interviewTopic,
@@ -635,6 +730,7 @@ export async function repairStuckLeads(): Promise<{ repaired: number; skipped: n
           email: null,
           emailConfidence: null,
           emailSource: null,
+          linkedinUrl: founderInfo.linkedinUrl,
           company: founderInfo.company,
           interviewSource: pv.youtubeUrl ? "YouTube" : "Manual",
           interviewTopic: founderInfo.interviewTopic,
@@ -674,6 +770,7 @@ export async function runPipeline(): Promise<PipelineRunSummary> {
       firstName: true,
       lastName: true,
       company: true,
+      linkedinUrl: true,
       pipelineVideo: { select: { youtubeVideoId: true } },
     },
     take: 20,
@@ -691,6 +788,8 @@ export async function runPipeline(): Promise<PipelineRunSummary> {
       lead.lastName ?? "",
       lead.company,
       realVideoId,
+      undefined,
+      lead.linkedinUrl ?? undefined,
     );
 
     if (result.email) {
@@ -700,6 +799,7 @@ export async function runPipeline(): Promise<PipelineRunSummary> {
           email: result.email,
           emailConfidence: result.confidence > 0 ? result.confidence : null,
           emailSource: result.source,
+          emailAttemptLog: result.attemptLog,
           status: "EMAIL_FOUND",
         },
       });
@@ -707,7 +807,7 @@ export async function runPipeline(): Promise<PipelineRunSummary> {
     } else {
       await prisma.outreachLead.update({
         where: { id: lead.id },
-        data: { status: "NO_EMAIL" },
+        data: { status: "NO_EMAIL", emailAttemptLog: result.attemptLog },
       });
     }
     await sleep(1200);

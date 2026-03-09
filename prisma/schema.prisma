@@ -321,7 +321,9 @@ model OutreachLead {
   lastName         String?
   email            String?
   emailConfidence  Int?
-  emailSource      String?   // youtube_channel | website | apollo | hunter | manual
+  emailSource      String?   // youtube_channel | website | prospeo | snov | apollo | hunter | manual
+  emailAttemptLog  Json?     // AttemptLogEntry[] — result of last waterfall run
+  linkedinUrl      String?   // inferred LinkedIn URL for Prospeo lookup
   company          String
   interviewSource  String
   interviewTopic   String
