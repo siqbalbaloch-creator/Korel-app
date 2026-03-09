@@ -80,7 +80,7 @@ export default async function AdminPipelinePage() {
           🤖 Pipeline
         </h1>
         <p className="text-sm text-neutral-500 mt-1">
-          Starter Story → interview → content pack → outreach queue. Runs daily at 9 AM or on-demand.
+          Starter Story + Indie Hackers + Failory → interview → content pack → outreach queue. Runs daily at 9 AM or on-demand.
         </p>
       </div>
 

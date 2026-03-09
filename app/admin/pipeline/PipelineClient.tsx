@@ -206,7 +206,15 @@ function LeadCard({
               rel="noopener noreferrer"
               className="text-xs text-indigo-600 hover:underline truncate block max-w-xs"
             >
-              {lead.interviewSource === "Starter Story" ? "📖" : lead.interviewSource === "Manual" ? "✋" : "📺"}{" "}
+              {lead.interviewSource === "Starter Story"
+                ? "📖"
+                : lead.interviewSource === "Indie Hackers"
+                  ? "🚀"
+                  : lead.interviewSource === "Failory"
+                    ? "⚡"
+                    : lead.interviewSource === "Manual"
+                      ? "✋"
+                      : "📺"}{" "}
               {lead.pipelineVideo.title}
             </a>
             <p className="text-xs text-neutral-400 mt-0.5">
@@ -296,23 +304,27 @@ function LeadCard({
                 <span className="text-xs text-neutral-400">
                   {lead.emailSource === "starter_story_page"
                     ? "📖 On page"
-                    : lead.emailSource === "youtube_channel"
-                    ? "📺 YouTube"
-                    : lead.emailSource === "website"
-                      ? "🌐 Website"
-                      : lead.emailSource === "prospeo"
-                        ? "🔗 Prospeo"
-                        : lead.emailSource === "snov"
-                          ? "❄️ Snov"
-                          : lead.emailSource === "apollo"
-                            ? "🔍 Apollo"
-                            : lead.emailSource === "hunter"
-                              ? "🎯 Hunter"
-                              : lead.emailSource === "manual"
-                                ? "✏️ Manual"
-                                : lead.emailSource === "twitter_bio"
-                                  ? "🐦 Twitter"
-                                  : lead.emailSource}
+                    : lead.emailSource === "indie_hackers_page"
+                      ? "🚀 On page"
+                      : lead.emailSource === "failory_page"
+                        ? "⚡ On page"
+                        : lead.emailSource === "youtube_channel"
+                          ? "📺 YouTube"
+                          : lead.emailSource === "website"
+                            ? "🌐 Website"
+                            : lead.emailSource === "prospeo"
+                              ? "🔗 Prospeo"
+                              : lead.emailSource === "snov"
+                                ? "❄️ Snov"
+                                : lead.emailSource === "apollo"
+                                  ? "🔍 Apollo"
+                                  : lead.emailSource === "hunter"
+                                    ? "🎯 Hunter"
+                                    : lead.emailSource === "manual"
+                                      ? "✏️ Manual"
+                                      : lead.emailSource === "twitter_bio"
+                                        ? "🐦 Twitter"
+                                        : lead.emailSource}
                 </span>
               )}
               {lead.emailConfidence !== null && (
@@ -889,7 +901,7 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
       {/* Custom run panel */}
       {showRunPanel && (
         <div className="rounded-xl border border-neutral-200 bg-white shadow-sm p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-neutral-900">📖 Starter Story Run Settings</h3>
+          <h3 className="text-sm font-semibold text-neutral-900">🔍 Discovery Run Settings</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-neutral-500 mb-1">
@@ -1108,7 +1120,17 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
                     <td className="px-4 py-2 max-w-[200px] truncate text-neutral-800">
                       {row.title}
                     </td>
-                    <td className="px-4 py-2 text-neutral-500">{row.youtubeVideoId}</td>
+                    <td className="px-4 py-2 text-neutral-500">
+                      {row.youtubeVideoId.startsWith("ss_")
+                        ? "📖 Starter Story"
+                        : row.youtubeVideoId.startsWith("ih_")
+                          ? "🚀 Indie Hackers"
+                          : row.youtubeVideoId.startsWith("fa_")
+                            ? "⚡ Failory"
+                            : row.youtubeVideoId.startsWith("pack_")
+                              ? "✋ Manual"
+                              : "📺 YouTube"}
+                    </td>
                     <td className="px-4 py-2">
                       <span
                         className={`rounded-full px-2 py-0.5 font-semibold ${
