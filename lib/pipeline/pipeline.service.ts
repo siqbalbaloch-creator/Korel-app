@@ -232,47 +232,62 @@ async function findEmailSnov(
   const token = await getSnovToken();
   if (!token) return { email: null, confidence: 0, reason: "auth failed" };
 
+  // v2 async two-step API (v1 get-emails-from-name removed)
   try {
-    const res = await fetch("https://api.snov.io/v1/get-emails-from-name", {
+    const startRes = await fetch("https://api.snov.io/v2/emails-by-domain-by-name/start", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        access_token: token,
-        firstName,
-        lastName: lastName || "",
-        domain,
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ rows: [{ first_name: firstName, last_name: lastName || "", domain }] }),
     });
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      console.log(`[findEmailSnov] HTTP ${res.status}: ${errText.slice(0, 200)}`);
-      return { email: null, confidence: 0, reason: `API error ${res.status}` };
+    if (!startRes.ok) {
+      const errText = await startRes.text().catch(() => "");
+      console.log(`[findEmailSnov] start HTTP ${startRes.status}: ${errText.slice(0, 200)}`);
+      return { email: null, confidence: 0, reason: `API error ${startRes.status}` };
     }
-    const data = (await res.json()) as {
-      data?: Array<{ email?: string; emailQuality?: number }>;
-    };
-    const first = data.data?.[0];
-    if (!first?.email) return { email: null, confidence: 0, reason: `${domain} found, 0 emails returned` };
-    return { email: first.email, confidence: first.emailQuality ?? 75, reason: "found" };
+    const startData = (await startRes.json()) as { data?: { task_hash?: string } };
+    const taskHash = startData.data?.task_hash;
+    if (!taskHash) return { email: null, confidence: 0, reason: "no task hash returned" };
+
+    // Poll up to 4 times with 5s intervals (~20s max)
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await sleep(5000);
+      const pollRes = await fetch(
+        `https://api.snov.io/v2/emails-by-domain-by-name/result?task_hash=${taskHash}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!pollRes.ok) continue;
+      const pollData = (await pollRes.json()) as {
+        status?: string;
+        data?: Array<{ result?: Array<{ email?: string; smtp_status?: string }> }>;
+      };
+      if (pollData.status !== "completed") continue;
+      const email = pollData.data?.[0]?.result?.[0]?.email ?? null;
+      const smtpStatus = pollData.data?.[0]?.result?.[0]?.smtp_status ?? "unknown";
+      if (!email) return { email: null, confidence: 0, reason: `${domain} found, 0 emails indexed` };
+      const confidence = smtpStatus === "valid" ? 85 : 65;
+      return { email, confidence, reason: `found (smtp: ${smtpStatus})` };
+    }
+    return { email: null, confidence: 0, reason: "lookup timed out" };
   } catch {
     return { email: null, confidence: 0, reason: "request failed" };
   }
 }
 
 // ─── Source 3: Prospeo.io (LinkedIn → email) ─────────────────────────────────
+// Endpoint: POST /enrich-person (new API; /linkedin-email-finder was deprecated Mar 2025)
 
 async function findEmailProspeo(linkedinUrl: string): Promise<SourceResult> {
   const apiKey = process.env.PROSPEO_API_KEY;
   if (!apiKey) return { email: null, confidence: 0, reason: "no API key" };
 
   try {
-    const res = await fetch("https://api.prospeo.io/linkedin-email-finder", {
+    const res = await fetch("https://api.prospeo.io/enrich-person", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-KEY": apiKey,
       },
-      body: JSON.stringify({ url: linkedinUrl }),
+      body: JSON.stringify({ data: { linkedin_url: linkedinUrl } }),
     });
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
@@ -280,12 +295,14 @@ async function findEmailProspeo(linkedinUrl: string): Promise<SourceResult> {
       return { email: null, confidence: 0, reason: `API error ${res.status}` };
     }
     const data = (await res.json()) as {
-      response?: { email?: { value?: string; type?: string } };
       error?: boolean;
+      person?: { email?: { email?: string; status?: string; revealed?: boolean } };
     };
     if (data.error) return { email: null, confidence: 0, reason: "LinkedIn profile not found" };
-    const email = data.response?.email?.value ?? null;
-    return { email, confidence: email ? 90 : 0, reason: email ? "found" : "no email on LinkedIn profile" };
+    const emailEntry = data.person?.email;
+    const email = emailEntry?.revealed ? (emailEntry.email ?? null) : null;
+    const confidence = emailEntry?.status === "VERIFIED" ? 95 : email ? 80 : 0;
+    return { email, confidence, reason: email ? `found (${emailEntry?.status ?? "unknown"})` : "no email on LinkedIn profile" };
   } catch {
     return { email: null, confidence: 0, reason: "request failed" };
   }
