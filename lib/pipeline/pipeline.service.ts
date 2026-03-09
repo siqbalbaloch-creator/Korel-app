@@ -20,6 +20,8 @@ export type CreateLeadFromPackOptions = {
   newsletter: string;
 };
 
+type RevenueStage = "pre-revenue" | "early" | "growing" | "scaled";
+
 type FounderInfo = {
   firstName: string;
   lastName: string;
@@ -27,6 +29,8 @@ type FounderInfo = {
   interviewTopic: string;
   specificMoment: string;
   isFounderInterview: boolean;
+  monthlyRevenue: number | null;
+  revenueStage: RevenueStage;
 };
 
 type EmailResult = {
@@ -316,7 +320,9 @@ Extract and return ONLY a JSON object with these fields:
   "company": "their company name (string)",
   "interviewTopic": "one sentence describing what this interview is mainly about — their journey, product, or key insight (max 15 words)",
   "specificMoment": "the single most interesting or surprising thing they said — write it as 'you talked about X' or 'you mentioned Y' (max 20 words)",
-  "isFounderInterview": true or false
+  "isFounderInterview": true or false,
+  "monthlyRevenue": estimated monthly recurring revenue in USD as a plain integer (e.g. 5000 for $5k/mo), or null if not mentioned anywhere in the transcript,
+  "revenueStage": one of exactly: "pre-revenue" (no revenue / $0), "early" ($1-$5000/mo), "growing" ($5001-$50000/mo), "scaled" ($50001+/mo) — derive from monthlyRevenue if provided, otherwise infer from context clues (e.g. "just launched" = pre-revenue, "profitable" or "7 figures" = scaled)
 }
 
 Return ONLY the JSON object. No explanation. No markdown.`;
@@ -330,7 +336,23 @@ Return ONLY the JSON object. No explanation. No markdown.`;
   });
 
   const text = res.choices[0]?.message?.content ?? "{}";
-  const parsed = JSON.parse(text) as Partial<FounderInfo>;
+  const parsed = JSON.parse(text) as Partial<FounderInfo> & { monthlyRevenue?: number | null; revenueStage?: string };
+
+  const rawRevenue = typeof parsed.monthlyRevenue === "number" ? parsed.monthlyRevenue : null;
+  const validStages: RevenueStage[] = ["pre-revenue", "early", "growing", "scaled"];
+  const rawStage = parsed.revenueStage as RevenueStage | undefined;
+  const revenueStage: RevenueStage =
+    rawStage && validStages.includes(rawStage)
+      ? rawStage
+      : rawRevenue === null
+        ? "pre-revenue"
+        : rawRevenue === 0
+          ? "pre-revenue"
+          : rawRevenue <= 5000
+            ? "early"
+            : rawRevenue <= 50000
+              ? "growing"
+              : "scaled";
 
   return {
     firstName: parsed.firstName ?? "Founder",
@@ -339,6 +361,8 @@ Return ONLY the JSON object. No explanation. No markdown.`;
     interviewTopic: parsed.interviewTopic ?? "their entrepreneurial journey",
     specificMoment: parsed.specificMoment ?? "your insights on building a business",
     isFounderInterview: parsed.isFounderInterview ?? false,
+    monthlyRevenue: rawRevenue,
+    revenueStage,
   };
 }
 
@@ -404,6 +428,8 @@ export async function createLeadFromPack(
         linkedinPost,
         twitterPost,
         newsletter,
+        monthlyRevenue: founderInfo.monthlyRevenue,
+        revenueStage: founderInfo.revenueStage,
         status: leadStatus,
       },
     });

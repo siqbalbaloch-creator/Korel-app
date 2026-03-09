@@ -329,6 +329,8 @@ model OutreachLead {
   linkedinPost     String
   twitterPost      String
   newsletter       String
+  monthlyRevenue   Int?      // estimated MRR in USD (null = not mentioned)
+  revenueStage     String?   // pre-revenue | early | growing | scaled
   status           OutreachLeadStatus @default(PENDING_EMAIL)
   approvedAt       DateTime?
   sentAt           DateTime?

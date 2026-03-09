@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { buildEmailBody } from "@/components/admin/gmailSender";
 
+type RevenueStage = "pre-revenue" | "early" | "growing" | "scaled";
+
 type Lead = {
   id: string;
   firstName: string;
@@ -17,6 +19,8 @@ type Lead = {
   linkedinPost: string;
   twitterPost: string;
   newsletter: string;
+  monthlyRevenue: number | null;
+  revenueStage: string | null;
   status: string;
   approvedAt: string | null;
   sentAt: string | null;
@@ -48,7 +52,44 @@ type Props = {
   defaultQuery: string;
 };
 
+type ReadyFilter = "all" | "growing_plus" | "has_email";
+
 type Tab = "READY" | "APPROVED" | "SENT" | "SKIPPED" | "FAILED";
+
+function RevenueBadge({ stage, revenue }: { stage: string | null; revenue: number | null }) {
+  if (!stage) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-400">
+        Unknown revenue
+      </span>
+    );
+  }
+  if (stage === "pre-revenue") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-500">
+        Pre-revenue
+      </span>
+    );
+  }
+  if (stage === "early") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600">
+        Early stage
+      </span>
+    );
+  }
+  const label =
+    revenue !== null
+      ? `$${revenue >= 1000 ? `${Math.round(revenue / 1000)}k` : revenue}/mo`
+      : stage === "growing"
+        ? "Growing"
+        : "Scaled";
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+      {label}
+    </span>
+  );
+}
 
 const STATUS_LABELS: Record<Tab, string> = {
   READY: "Ready",
@@ -139,6 +180,8 @@ function LeadCard({
             {lead.specificMoment}
           </p>
         </div>
+
+        <RevenueBadge stage={lead.revenueStage} revenue={lead.monthlyRevenue} />
 
         <div className="flex items-center gap-2">
           {editingEmail ? (
@@ -298,6 +341,7 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
   const [customDays, setCustomDays] = useState(7);
   const [customMax, setCustomMax] = useState(10);
   const [showLog, setShowLog] = useState(false);
+  const [readyFilter, setReadyFilter] = useState<ReadyFilter>("all");
   const [, startTransition] = useTransition();
 
   const readyLeads = localLeads.filter((l) => READY_STATUSES.includes(l.status));
@@ -305,8 +349,16 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
   const sentLeads = localLeads.filter((l) => l.status === "SENT");
   const skippedLeads = localLeads.filter((l) => l.status === "SKIPPED");
 
+  const filteredReadyLeads = readyLeads.filter((l) => {
+    if (readyFilter === "growing_plus") {
+      return l.revenueStage === "growing" || l.revenueStage === "scaled";
+    }
+    if (readyFilter === "has_email") return !!l.email;
+    return true;
+  });
+
   const tabLeads: Record<Tab, Lead[]> = {
-    READY: readyLeads,
+    READY: filteredReadyLeads,
     APPROVED: approvedLeads,
     SENT: sentLeads,
     SKIPPED: skippedLeads,
@@ -607,13 +659,45 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
         <div className="p-4 space-y-3">
           {/* Ready tab actions */}
           {activeTab === "READY" && readyLeads.length > 0 && (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={approveAll}
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
               >
                 ✅ Approve All ({readyLeads.length})
               </button>
+              <div className="flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
+                {(
+                  [
+                    { key: "all", label: "Show all" },
+                    { key: "growing_plus", label: "Growing+" },
+                    { key: "has_email", label: "Has email" },
+                  ] as { key: ReadyFilter; label: string }[]
+                ).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setReadyFilter(key)}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                      readyFilter === key
+                        ? "bg-white shadow-sm text-neutral-900"
+                        : "text-neutral-500 hover:text-neutral-700"
+                    }`}
+                  >
+                    {label}
+                    {key !== "all" && (
+                      <span className="ml-1 text-neutral-400">
+                        (
+                        {key === "growing_plus"
+                          ? readyLeads.filter(
+                              (l) => l.revenueStage === "growing" || l.revenueStage === "scaled",
+                            ).length
+                          : readyLeads.filter((l) => !!l.email).length}
+                        )
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
