@@ -64,7 +64,6 @@ type Props = {
   leads: Lead[];
   pipelineLog: PipelineLog[];
   lastRun: LastRun;
-  defaultQuery: string;
   llmStats: LlmStats;
 };
 
@@ -207,7 +206,8 @@ function LeadCard({
               rel="noopener noreferrer"
               className="text-xs text-indigo-600 hover:underline truncate block max-w-xs"
             >
-              📺 {lead.pipelineVideo.title}
+              {lead.interviewSource === "Starter Story" ? "📖" : lead.interviewSource === "Manual" ? "✋" : "📺"}{" "}
+              {lead.pipelineVideo.title}
             </a>
             <p className="text-xs text-neutral-400 mt-0.5">
               Found{" "}
@@ -294,7 +294,9 @@ function LeadCard({
               </span>
               {lead.emailSource && (
                 <span className="text-xs text-neutral-400">
-                  {lead.emailSource === "youtube_channel"
+                  {lead.emailSource === "starter_story_page"
+                    ? "📖 On page"
+                    : lead.emailSource === "youtube_channel"
                     ? "📺 YouTube"
                     : lead.emailSource === "website"
                       ? "🌐 Website"
@@ -499,7 +501,7 @@ function LeadCard({
   );
 }
 
-export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQuery, llmStats }: Props) {
+export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("READY");
   const [localLeads, setLocalLeads] = useState<Lead[]>(leads);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -509,9 +511,8 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
   const [sendingAll, setSendingAll] = useState(false);
   const [sendProgress, setSendProgress] = useState<{ current: number; total: number } | null>(null);
   const [showRunPanel, setShowRunPanel] = useState(false);
-  const [customQuery, setCustomQuery] = useState(defaultQuery);
-  const [customDays, setCustomDays] = useState(7);
   const [customMax, setCustomMax] = useState(10);
+  const [customMinRevenue, setCustomMinRevenue] = useState(5000);
   const [showLog, setShowLog] = useState(false);
   const [readyFilter, setReadyFilter] = useState<ReadyFilter>("all");
   const [repairing, setRepairing] = useState(false);
@@ -729,19 +730,21 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
       const res = await fetch("/api/cron/pipeline/trigger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: customQuery, maxResults: customMax, daysBack: customDays }),
+        body: JSON.stringify({ maxResults: customMax, minRevenue: customMinRevenue }),
       });
       const data = (await res.json()) as {
         success: boolean;
+        discovered?: number;
         processed?: number;
-        succeeded?: number;
-        failed?: number;
         skipped?: number;
+        failed?: number;
+        emailRetries?: number;
+        emailsFound?: number;
         error?: string;
       };
       if (data.success) {
         setRunResult(
-          `✅ Done — ${data.processed} processed, ${data.succeeded} ready, ${data.skipped} skipped, ${data.failed} failed. Refresh to see new leads.`,
+          `✅ Done — ${data.discovered ?? 0} stories found, ${data.processed ?? 0} leads created, ${data.skipped ?? 0} skipped, ${data.emailRetries ?? 0} email retries (${data.emailsFound ?? 0} found). Refresh to see new leads.`,
         );
       } else {
         setRunResult(`❌ ${data.error ?? "Pipeline failed"}`);
@@ -886,38 +889,11 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
       {/* Custom run panel */}
       {showRunPanel && (
         <div className="rounded-xl border border-neutral-200 bg-white shadow-sm p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-neutral-900">Custom Run Settings</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <h3 className="text-sm font-semibold text-neutral-900">📖 Starter Story Run Settings</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-neutral-500 mb-1">
-                Search query
-              </label>
-              <input
-                type="text"
-                value={customQuery}
-                onChange={(e) => setCustomQuery(e.target.value)}
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-neutral-500 mb-1">
-                Published in last N days
-              </label>
-              <select
-                value={customDays}
-                onChange={(e) => setCustomDays(Number(e.target.value))}
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {[3, 7, 14, 30].map((d) => (
-                  <option key={d} value={d}>
-                    {d} days
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-neutral-500 mb-1">
-                Max results
+                Max stories to process
               </label>
               <input
                 type="number"
@@ -928,7 +904,26 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
                 className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
+            <div>
+              <label className="block text-xs font-medium text-neutral-500 mb-1">
+                Min monthly revenue filter ($)
+              </label>
+              <select
+                value={customMinRevenue}
+                onChange={(e) => setCustomMinRevenue(Number(e.target.value))}
+                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                {[0, 1000, 5000, 10000, 25000, 50000].map((v) => (
+                  <option key={v} value={v}>
+                    {v === 0 ? "No minimum" : `$${v >= 1000 ? `${v / 1000}k` : v}/mo+`}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+          <p className="text-xs text-neutral-400">
+            Scrapes starterstory.com/stories, generates content packs, then runs email waterfall for new leads.
+          </p>
           <button
             onClick={() => { setShowRunPanel(false); runPipeline(); }}
             disabled={running}

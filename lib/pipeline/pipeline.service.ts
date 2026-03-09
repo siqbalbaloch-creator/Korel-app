@@ -22,9 +22,9 @@ export type CreateLeadFromPackOptions = {
   llmUsed?: string;
 };
 
-type RevenueStage = "pre-revenue" | "early" | "growing" | "scaled";
+export type RevenueStage = "pre-revenue" | "early" | "growing" | "scaled";
 
-type FounderInfo = {
+export type FounderInfo = {
   firstName: string;
   lastName: string;
   company: string;
@@ -425,8 +425,15 @@ async function scrapeTwitterBioEmail(
   firstName: string,
   lastName: string,
   company: string,
+  directTwitterUrl?: string,
 ): Promise<SourceResult> {
-  const handle = await inferTwitterHandle(firstName, lastName, company);
+  // If we have a direct URL, extract handle from it
+  let handle: string | null = null;
+  if (directTwitterUrl) {
+    const m = directTwitterUrl.match(/(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]{2,50})/i);
+    handle = m?.[1] ?? null;
+  }
+  if (!handle) handle = await inferTwitterHandle(firstName, lastName, company);
   if (!handle) return { email: null, confidence: 0, reason: "could not infer Twitter handle" };
 
   for (const instance of NITTER_INSTANCES) {
@@ -459,13 +466,14 @@ async function scrapeTwitterBioEmail(
 
 // ─── Waterfall findEmail ──────────────────────────────────────────────────────
 
-async function findEmail(
+export async function findEmail(
   firstName: string,
   lastName: string,
   company: string,
   youtubeVideoId?: string,
   websiteUrl?: string,
   linkedinUrl?: string,
+  twitterUrl?: string,
 ): Promise<EmailResult> {
   console.log(`[findEmail] called for: ${firstName} ${lastName} | company: ${company} | videoId: ${youtubeVideoId ?? "none"}`);
   const log: AttemptLogEntry[] = [];
@@ -560,7 +568,7 @@ async function findEmail(
 
   // Source 7: Twitter/X bio via Nitter (no API key — public mirror, last resort)
   {
-    const result = await scrapeTwitterBioEmail(firstName, lastName, company);
+    const result = await scrapeTwitterBioEmail(firstName, lastName, company, twitterUrl);
     console.log(`[findEmail] twitter_bio → ${result.email ?? "null"} (${result.reason})`);
     if (result.email) {
       log.push({ source: "twitter_bio", result: "found", detail: result.reason });
@@ -575,7 +583,7 @@ async function findEmail(
 
 // ─── Extract founder info via GPT-4o-mini ─────────────────────────────────────
 
-async function extractFounderInfo(
+export async function extractFounderInfo(
   transcript: string,
   videoTitle: string,
   channelName: string,

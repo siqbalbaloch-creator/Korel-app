@@ -308,6 +308,7 @@ model PipelineVideo {
   status            PipelineVideoStatus @default(DISCOVERED)
   errorMessage      String?
   createdAt         DateTime            @default(now())
+  starterStoryUrl   String?             // Starter Story interview URL (null for YouTube/manual leads)
 
   lead OutreachLead?
 

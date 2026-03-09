@@ -73,9 +73,6 @@ export default async function AdminPipelinePage() {
     ? { at: lastVideo.createdAt.toISOString(), count: todayCount }
     : null;
 
-  const defaultQuery =
-    process.env.PIPELINE_SEARCH_QUERY ?? "founder interview startup bootstrapped SaaS";
-
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-8">
       <div className="mb-6">
@@ -83,7 +80,7 @@ export default async function AdminPipelinePage() {
           🤖 Pipeline
         </h1>
         <p className="text-sm text-neutral-500 mt-1">
-          YouTube → transcript → content pack → outreach queue. Run daily or on-demand.
+          Starter Story → interview → content pack → outreach queue. Runs daily at 9 AM or on-demand.
         </p>
       </div>
 
@@ -91,7 +88,6 @@ export default async function AdminPipelinePage() {
         leads={leads}
         pipelineLog={pipelineLog}
         lastRun={lastRun}
-        defaultQuery={defaultQuery}
         llmStats={llmStats}
       />
     </div>
