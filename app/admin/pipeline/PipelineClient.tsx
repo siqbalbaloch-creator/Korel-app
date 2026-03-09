@@ -342,6 +342,8 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
   const [customMax, setCustomMax] = useState(10);
   const [showLog, setShowLog] = useState(false);
   const [readyFilter, setReadyFilter] = useState<ReadyFilter>("all");
+  const [repairing, setRepairing] = useState(false);
+  const [repairResult, setRepairResult] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   const readyLeads = localLeads.filter((l) => READY_STATUSES.includes(l.status));
@@ -423,6 +425,23 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
       ),
     );
     setActiveTab("APPROVED");
+  }
+
+  async function repairStuck() {
+    setRepairing(true);
+    setRepairResult(null);
+    try {
+      const res = await fetch("/api/admin/leads/repair", { method: "POST" });
+      const data = (await res.json()) as { success: boolean; repaired?: number; skipped?: number; error?: string };
+      if (data.success) {
+        setRepairResult(`🔧 Repaired ${data.repaired} stuck pack${data.repaired !== 1 ? "s" : ""} — refresh to see them in Ready tab.`);
+      } else {
+        setRepairResult(`❌ ${data.error ?? "Repair failed"}`);
+      }
+    } catch {
+      setRepairResult("❌ Network error");
+    }
+    setRepairing(false);
   }
 
   async function runPipeline() {
@@ -545,6 +564,13 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={repairStuck}
+            disabled={repairing || running}
+            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-60 transition-colors"
+          >
+            {repairing ? "🔧 Repairing…" : "🔧 Repair Stuck"}
+          </button>
+          <button
             onClick={() => setShowRunPanel((v) => !v)}
             className="rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
           >
@@ -559,6 +585,18 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, defaultQue
           </button>
         </div>
       </div>
+
+      {repairResult && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm font-medium ${
+            repairResult.startsWith("🔧")
+              ? "border-amber-200 bg-amber-50 text-amber-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          {repairResult}
+        </div>
+      )}
 
       {runResult && (
         <div

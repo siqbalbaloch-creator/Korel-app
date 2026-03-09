@@ -367,13 +367,19 @@ Return ONLY the JSON object. No explanation. No markdown.`;
 }
 
 // ─── Create lead from a manually generated pack ───────────────────────────────
+// NOTE: This runs fire-and-forget (void) from packs/route.ts, so it MUST complete
+// quickly. Email finding is intentionally NOT done here — the cron's runPipeline()
+// picks up PENDING_EMAIL leads and runs the waterfall asynchronously.
 
 export async function createLeadFromPack(
   options: CreateLeadFromPackOptions,
 ): Promise<void> {
+  let pvId: string | null = null;
   try {
     const { transcript, packId, videoTitle, youtubeUrl, linkedinPost, twitterPost, newsletter } =
       options;
+
+    console.log(`[createLeadFromPack] start packId=${packId}`);
 
     const matchedVideoId = youtubeUrl ? YOUTUBE_VIDEO_ID_RE.exec(youtubeUrl)?.[1] : null;
     const youtubeVideoId = matchedVideoId ?? `pack_${packId}`;
@@ -382,10 +388,14 @@ export async function createLeadFromPack(
     const existing = await prisma.pipelineVideo.findUnique({
       where: { youtubeVideoId },
     });
-    if (existing) return;
+    if (existing) {
+      console.log(`[createLeadFromPack] already processed, skip`);
+      return;
+    }
 
     // Extract founder info from the transcript
     const founderInfo = await extractFounderInfo(transcript, videoTitle ?? "", "");
+    console.log(`[createLeadFromPack] isFounderInterview=${founderInfo.isFounderInterview} company=${founderInfo.company}`);
     if (!founderInfo.isFounderInterview) return;
 
     // Create PipelineVideo record
@@ -402,25 +412,19 @@ export async function createLeadFromPack(
         processedAt: new Date(),
       },
     });
+    pvId = pv.id;
 
-    // Find email via waterfall
-    const emailResult = await findEmail(
-      founderInfo.firstName,
-      founderInfo.lastName,
-      founderInfo.company,
-      matchedVideoId ?? undefined,
-    );
-
-    const leadStatus = emailResult.email ? "EMAIL_FOUND" : "NO_EMAIL";
-
+    // Create the OutreachLead immediately with PENDING_EMAIL status.
+    // Email finding runs later via the cron's runPipeline() to avoid Vercel
+    // function timeout killing the process mid-waterfall.
     await prisma.outreachLead.create({
       data: {
         pipelineVideoId: pv.id,
         firstName: founderInfo.firstName,
         lastName: founderInfo.lastName || null,
-        email: emailResult.email ?? null,
-        emailConfidence: emailResult.confidence > 0 ? emailResult.confidence : null,
-        emailSource: emailResult.email ? emailResult.source : null,
+        email: null,
+        emailConfidence: null,
+        emailSource: null,
         company: founderInfo.company,
         interviewSource: youtubeUrl ? "YouTube" : "Manual",
         interviewTopic: founderInfo.interviewTopic,
@@ -430,7 +434,7 @@ export async function createLeadFromPack(
         newsletter,
         monthlyRevenue: founderInfo.monthlyRevenue,
         revenueStage: founderInfo.revenueStage,
-        status: leadStatus,
+        status: "PENDING_EMAIL",
       },
     });
 
@@ -438,12 +442,128 @@ export async function createLeadFromPack(
       where: { id: pv.id },
       data: { status: "READY" },
     });
+
+    console.log(`[createLeadFromPack] done — lead created PENDING_EMAIL for ${founderInfo.firstName} ${founderInfo.lastName}`);
   } catch (err) {
+    console.error(`[createLeadFromPack] FAILED packId=${options.packId}:`, err);
     logger.error("pipeline.createLeadFromPack.failed", {
       packId: options.packId,
       err: String(err),
     });
+    // Mark the PipelineVideo as FAILED so it's visible in the admin log
+    if (pvId) {
+      await prisma.pipelineVideo
+        .update({
+          where: { id: pvId },
+          data: { status: "FAILED", errorMessage: String(err) },
+        })
+        .catch(() => {}); // best-effort, don't throw again
+    }
   }
+}
+
+// ─── Repair stuck PACK_GENERATED records ─────────────────────────────────────
+// Finds PipelineVideo rows stuck in PACK_GENERATED with no OutreachLead and
+// creates the missing lead records so the cron can retry email finding.
+
+export async function repairStuckLeads(): Promise<{ repaired: number; skipped: number }> {
+  // PipelineVideo records in PACK_GENERATED with no associated OutreachLead
+  const stuckVideos = await prisma.pipelineVideo.findMany({
+    where: {
+      status: "PACK_GENERATED",
+      lead: null,
+    },
+    select: {
+      id: true,
+      youtubeVideoId: true,
+      title: true,
+      youtubeUrl: true,
+      transcript: true,
+    },
+  });
+
+  console.log(`[repairStuckLeads] found ${stuckVideos.length} stuck records`);
+
+  let repaired = 0;
+  let skipped = 0;
+
+  for (const pv of stuckVideos) {
+    try {
+      const transcript = pv.transcript ?? "";
+
+      // Derive packId if this was a manual pack (pack_<packId>)
+      const isManualPack = pv.youtubeVideoId.startsWith("pack_");
+      const packId = isManualPack ? pv.youtubeVideoId.slice(5) : null;
+
+      // Load content from AuthorityPack if available
+      let linkedinPost = "";
+      let twitterPost = "";
+      let newsletter = "";
+
+      if (packId) {
+        const pack = await prisma.authorityPack.findUnique({
+          where: { id: packId },
+          select: { highLeveragePosts: true },
+        });
+        if (pack?.highLeveragePosts) {
+          const posts = pack.highLeveragePosts as {
+            linkedinPosts?: string[];
+            twitterThread?: string[];
+            newsletterSummary?: string;
+          };
+          linkedinPost = posts.linkedinPosts?.[0] ?? "";
+          twitterPost = posts.twitterThread?.join("\n\n") ?? "";
+          newsletter = posts.newsletterSummary ?? "";
+        }
+      }
+
+      // Re-extract founder info from the stored transcript
+      const founderInfo = await extractFounderInfo(transcript, pv.title, "");
+      if (!founderInfo.isFounderInterview) {
+        console.log(`[repairStuckLeads] ${pv.id} — not a founder interview, marking FAILED`);
+        await prisma.pipelineVideo.update({
+          where: { id: pv.id },
+          data: { status: "FAILED", errorMessage: "Not identified as founder interview" },
+        });
+        skipped++;
+        continue;
+      }
+
+      await prisma.outreachLead.create({
+        data: {
+          pipelineVideoId: pv.id,
+          firstName: founderInfo.firstName,
+          lastName: founderInfo.lastName || null,
+          email: null,
+          emailConfidence: null,
+          emailSource: null,
+          company: founderInfo.company,
+          interviewSource: pv.youtubeUrl ? "YouTube" : "Manual",
+          interviewTopic: founderInfo.interviewTopic,
+          specificMoment: founderInfo.specificMoment,
+          linkedinPost,
+          twitterPost,
+          newsletter,
+          monthlyRevenue: founderInfo.monthlyRevenue,
+          revenueStage: founderInfo.revenueStage,
+          status: "PENDING_EMAIL",
+        },
+      });
+
+      await prisma.pipelineVideo.update({
+        where: { id: pv.id },
+        data: { status: "READY" },
+      });
+
+      console.log(`[repairStuckLeads] repaired ${pv.id} — ${founderInfo.firstName} ${founderInfo.lastName}`);
+      repaired++;
+    } catch (err) {
+      console.error(`[repairStuckLeads] failed for ${pv.id}:`, err);
+      skipped++;
+    }
+  }
+
+  return { repaired, skipped };
 }
 
 // ─── Cron: retry email lookup for NO_EMAIL / PENDING_EMAIL leads ──────────────
