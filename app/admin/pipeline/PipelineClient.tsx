@@ -520,6 +520,8 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
   const [actioningIds, setActioningIds] = useState<Record<string, "approving" | "skipping" | "sending">>({});
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<string | null>(null);
+  const [rssRunning, setRssRunning] = useState(false);
+  const [rssResult, setRssResult] = useState<string | null>(null);
   const [sendingAll, setSendingAll] = useState(false);
   const [sendProgress, setSendProgress] = useState<{ current: number; total: number } | null>(null);
   const [showRunPanel, setShowRunPanel] = useState(false);
@@ -735,6 +737,31 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
     setRepairing(false);
   }
 
+  async function runRssCheck() {
+    setRssRunning(true);
+    setRssResult(null);
+    try {
+      const res = await fetch("/api/cron/rss/trigger", { method: "POST" });
+      const data = await res.json() as {
+        success?: boolean;
+        feedsChecked?: number;
+        newEpisodes?: number;
+        packsGenerated?: number;
+        error?: string;
+      };
+      if (data.success) {
+        setRssResult(
+          `✅ Done — ${data.feedsChecked ?? 0} feed${(data.feedsChecked ?? 0) !== 1 ? "s" : ""} checked, ${data.newEpisodes ?? 0} new episode${(data.newEpisodes ?? 0) !== 1 ? "s" : ""}, ${data.packsGenerated ?? 0} pack${(data.packsGenerated ?? 0) !== 1 ? "s" : ""} generated.`,
+        );
+      } else {
+        setRssResult(`❌ ${data.error ?? "RSS check failed"}`);
+      }
+    } catch {
+      setRssResult("❌ Network error — check console");
+    }
+    setRssRunning(false);
+  }
+
   async function runPipeline() {
     setRunning(true);
     setRunResult(null);
@@ -865,6 +892,13 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
             ⚙ Settings
           </button>
           <button
+            onClick={runRssCheck}
+            disabled={rssRunning || running}
+            className="rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors"
+          >
+            {rssRunning ? "⏳ Checking…" : "📡 Run RSS Check"}
+          </button>
+          <button
             onClick={runPipeline}
             disabled={running}
             className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors"
@@ -895,6 +929,18 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
           }`}
         >
           {runResult}
+        </div>
+      )}
+
+      {rssResult && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm font-medium ${
+            rssResult.startsWith("✅")
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          {rssResult}
         </div>
       )}
 
