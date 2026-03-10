@@ -1,4 +1,5 @@
 import Parser from "rss-parser";
+import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { generateAuthorityPack } from "@/lib/packGenerationService";
 import { calculateQualityScore } from "@/lib/calculateQualityScore";
@@ -236,6 +237,7 @@ async function checkFeed(feed: FeedWithUser): Promise<{
           qualityBreakdown: breakdown as unknown as Prisma.InputJsonValue,
           lastGeneratedAt: new Date(),
           llmUsed: "openai-gpt4o",
+          approveToken: randomUUID(),
         },
       });
       await incrementPackUsage(feed.userId, tx);

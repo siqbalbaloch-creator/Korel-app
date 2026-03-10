@@ -200,6 +200,7 @@ model AuthorityPack {
   qualityBreakdown  Json?
   status            String    @default("draft")
   llmUsed           String?   // 'openai-gpt4o' | 'anthropic-claude' | null
+  approveToken      String?   @unique
   createdAt         DateTime  @default(now())
 
   user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
