@@ -26,6 +26,7 @@ import {
 import type { StrategicAuthorityMap } from "@/ai/prompts";
 import type { Prisma } from "@prisma/client";
 import SendToFounderButton from "./SendToFounderButton";
+import SocialPublishPanel from "./SocialPublishPanel";
 
 type CoreThesis = {
   primaryThesis: string;
@@ -365,6 +366,47 @@ export default async function HistoryDetailPage({ params }: HistoryDetailParams)
         orderBy: { sentAt: "desc" },
       })
     : [];
+
+  const [connectedAccounts, publishRecords] = await Promise.all([
+    prisma.connectedAccount.findMany({
+      where: { userId, isActive: true },
+      select: { platform: true },
+    }),
+    prisma.publishRecord.findMany({
+      where: { packId: id, userId },
+      select: {
+        id: true,
+        platform: true,
+        status: true,
+        postUrl: true,
+        postId: true,
+        publishedAt: true,
+        scheduledFor: true,
+      },
+    }),
+  ]);
+
+  const linkedInConnected = connectedAccounts.some((a) => a.platform === "linkedin");
+  const xConnected = connectedAccounts.some((a) => a.platform === "x");
+
+  const toPublishRecord = (r: (typeof publishRecords)[number]) => ({
+    id: r.id,
+    status: r.status,
+    postUrl: r.postUrl,
+    postId: r.postId,
+    publishedAt: r.publishedAt?.toISOString() ?? null,
+    scheduledFor: r.scheduledFor?.toISOString() ?? null,
+  });
+
+  const linkedinPublishRecord =
+    publishRecords.find((r) => r.platform === "linkedin" && r.status !== "failed")
+      ? toPublishRecord(publishRecords.find((r) => r.platform === "linkedin" && r.status !== "failed")!)
+      : null;
+
+  const xPublishRecord =
+    publishRecords.find((r) => r.platform === "x" && r.status !== "failed")
+      ? toPublishRecord(publishRecords.find((r) => r.platform === "x" && r.status !== "failed")!)
+      : null;
 
   const planInfo = await getUserPlan(userId, { role: session.user.role });
   const planConfig = getPlanConfig(planInfo.plan);
@@ -858,6 +900,14 @@ export default async function HistoryDetailPage({ params }: HistoryDetailParams)
           </div>
 
           <aside className="space-y-8 lg:sticky lg:top-8">
+            <SocialPublishPanel
+              packId={pack.id}
+              linkedInConnected={linkedInConnected}
+              xConnected={xConnected}
+              linkedinRecord={linkedinPublishRecord}
+              xRecord={xPublishRecord}
+            />
+
             <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm p-5 space-y-4">
               <h2 className="text-sm font-semibold text-neutral-900">
                 Quick Actions

@@ -54,14 +54,16 @@ model User {
 
   role           String    @default("user")
 
-  accounts         Account[]
-  sessions         Session[]
-  packs            AuthorityPack[]
-  supportTickets   SupportTicket[]
-  subscription     Subscription?
-  usage            Usage[]
-  authorityProfile AuthorityProfile?
-  waitlistEntries  WaitlistEntry[]
+  accounts          Account[]
+  sessions          Session[]
+  packs             AuthorityPack[]
+  supportTickets    SupportTicket[]
+  subscription      Subscription?
+  usage             Usage[]
+  authorityProfile  AuthorityProfile?
+  waitlistEntries   WaitlistEntry[]
+  connectedAccounts ConnectedAccount[]
+  publishRecords    PublishRecord[]
 
   createdAt DateTime @default(now())
 }
@@ -199,9 +201,10 @@ model AuthorityPack {
   llmUsed           String?   // 'openai-gpt4o' | 'anthropic-claude' | null
   createdAt         DateTime  @default(now())
 
-  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  repurposes AuthorityPackRepurpose[]
-  sendLogs   PackSendLog[]
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repurposes     AuthorityPackRepurpose[]
+  sendLogs       PackSendLog[]
+  publishRecords PublishRecord[]
 }
 
 model AuthorityPackRepurpose {
@@ -345,6 +348,46 @@ model OutreachLead {
 
   @@index([status])
   @@index([createdAt])
+}
+
+model ConnectedAccount {
+  id               String    @id @default(cuid())
+  userId           String
+  platform         String    // "linkedin" | "x"
+  platformUserId   String
+  platformUsername String?
+  accessToken      String    // AES-256-GCM encrypted
+  refreshToken     String?   // AES-256-GCM encrypted
+  tokenExpiresAt   DateTime?
+  isActive         Boolean   @default(true)
+  connectedAt      DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+  @@index([userId])
+}
+
+model PublishRecord {
+  id           String    @id @default(cuid())
+  userId       String
+  packId       String
+  platform     String    // "linkedin" | "x"
+  content      String
+  postId       String?
+  postUrl      String?
+  status       String    // "published" | "scheduled" | "failed"
+  scheduledFor DateTime?
+  publishedAt  DateTime?
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+
+  pack AuthorityPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([packId])
+  @@index([userId])
+  @@index([status])
 }
 
 model MarketingEvent {
