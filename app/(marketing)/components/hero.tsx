@@ -6,7 +6,7 @@ export function Hero() {
       style={{
         backgroundColor: "#F6F7FB",
         paddingTop: "120px",
-        paddingBottom: "48px",
+        paddingBottom: "80px",
         paddingLeft: "24px",
         paddingRight: "24px",
         textAlign: "center",
@@ -166,7 +166,6 @@ export function Hero() {
             flexWrap: "wrap",
             justifyContent: "center",
             gap: "32px",
-            marginBottom: "56px",
           }}
         >
           {[
@@ -183,114 +182,7 @@ export function Hero() {
             </div>
           ))}
         </div>
-
-        {/* Animated flow diagram */}
-        <HeroFlow />
       </div>
-
-      <style>{`
-        @keyframes korelFadeUp {
-          from { opacity: 0; transform: translateY(14px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .kf-step-1 { animation: korelFadeUp 0.55s ease both; animation-delay: 0.25s; }
-        .kf-step-2 { animation: korelFadeUp 0.55s ease both; animation-delay: 0.75s; }
-        .kf-step-3 { animation: korelFadeUp 0.55s ease both; animation-delay: 1.25s; }
-        .kf-arrow-1 { animation: korelFadeUp 0.35s ease both; animation-delay: 0.55s; }
-        .kf-arrow-2 { animation: korelFadeUp 0.35s ease both; animation-delay: 1.05s; }
-      `}</style>
     </section>
-  );
-}
-
-function HeroFlow() {
-  const cardBase: React.CSSProperties = {
-    backgroundColor: "#ffffff",
-    borderRadius: "14px",
-    border: "1px solid rgba(0,0,0,0.08)",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
-    padding: "16px 20px",
-    textAlign: "left",
-    maxWidth: "340px",
-    margin: "0 auto",
-    width: "100%",
-  };
-
-  const arrowStyle: React.CSSProperties = {
-    color: "#C4B5FD",
-    fontSize: "22px",
-    lineHeight: "28px",
-    userSelect: "none",
-    margin: "4px auto",
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      {/* Step 1 — Notification */}
-      <div className="kf-step-1" style={cardBase}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-          <div style={{
-            width: "36px", height: "36px", borderRadius: "9px", flexShrink: 0,
-            background: "linear-gradient(135deg, #6D5EF3 0%, #8B7CFF 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "18px",
-          }}>📡</div>
-          <div>
-            <p style={{ margin: "0 0 2px", fontSize: "11px", color: "#94A3B8", fontWeight: 500 }}>Korel · just now</p>
-            <p style={{ margin: "0 0 4px", fontSize: "14px", fontWeight: 700, color: "#0F172A" }}>New pack ready from your podcast</p>
-            <p style={{ margin: 0, fontSize: "13px", color: "#64748B" }}>LinkedIn post + X thread + Newsletter generated from Episode 42.</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="kf-arrow-1" style={arrowStyle}>↓</div>
-
-      {/* Step 2 — Approve tabs */}
-      <div className="kf-step-2" style={cardBase}>
-        <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
-          {["LinkedIn", "X", "Newsletter"].map((tab, i) => (
-            <span key={tab} style={{
-              padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: 600,
-              backgroundColor: i === 0 ? "rgba(109,94,243,0.1)" : "transparent",
-              color: i === 0 ? "#6D5EF3" : "#94A3B8",
-              border: i === 0 ? "1px solid rgba(109,94,243,0.2)" : "1px solid transparent",
-            }}>{tab}</span>
-          ))}
-        </div>
-        <p style={{ margin: "0 0 10px", fontSize: "13px", color: "#374151", lineHeight: "1.5" }}>
-          "The biggest mistake founders make is treating authority building as a marketing task instead of a thinking habit..."
-        </p>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <div style={{
-            flex: 1, padding: "7px 0", borderRadius: "8px", textAlign: "center",
-            background: "linear-gradient(135deg, #6D5EF3 0%, #8B7CFF 100%)",
-            color: "#fff", fontSize: "12px", fontWeight: 600,
-          }}>Publish Now</div>
-          <div style={{
-            flex: 1, padding: "7px 0", borderRadius: "8px", textAlign: "center",
-            border: "1px solid #E2E8F0", background: "#fff",
-            color: "#64748B", fontSize: "12px", fontWeight: 600,
-          }}>Schedule</div>
-        </div>
-      </div>
-
-      <div className="kf-arrow-2" style={arrowStyle}>↓</div>
-
-      {/* Step 3 — Published */}
-      <div className="kf-step-3" style={{ ...cardBase, borderColor: "rgba(16,185,129,0.3)", background: "#F0FDF4" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{
-            width: "36px", height: "36px", borderRadius: "50%", flexShrink: 0,
-            backgroundColor: "rgba(16,185,129,0.15)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "18px",
-          }}>✅</div>
-          <div>
-            <p style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "#166534" }}>Published to LinkedIn</p>
-            <span style={{ margin: 0, fontSize: "12px", color: "#059669" }}>View post →</span>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
