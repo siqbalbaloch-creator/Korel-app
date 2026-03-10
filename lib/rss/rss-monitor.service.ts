@@ -31,44 +31,99 @@ function extractYouTubeVideoId(item: Parser.Item & { ytVideoId?: string; id?: st
 
 /** Convert a YouTube channel URL or handle to an RSS feed URL */
 export async function resolveYouTubeFeedUrl(input: string): Promise<string> {
-  // Already an RSS feed URL
-  if (input.includes("youtube.com/feeds/videos.xml")) return input;
+  const trimmed = input.trim();
 
-  // Extract channel ID from URL formats
-  const channelIdMatch = input.match(/youtube\.com\/channel\/(UC[\w-]+)/);
+  // Already an RSS feed URL
+  if (trimmed.includes("youtube.com/feeds/videos.xml")) return trimmed;
+
+  // youtube.com/channel/UC... — extract ID directly
+  const channelIdMatch = trimmed.match(/youtube\.com\/channel\/(UC[\w-]+)/);
   if (channelIdMatch) {
     return `https://www.youtube.com/feeds/videos.xml?channel_id=${channelIdMatch[1]}`;
   }
 
-  // @handle format — fetch the page to find channelId
-  const handleMatch = input.match(/youtube\.com\/@([\w-]+)/);
+  // youtube.com/@handle or bare @handle — resolve via page scrape
+  const handleMatch =
+    trimmed.match(/youtube\.com\/@([\w.-]+)/) ??
+    trimmed.match(/^@([\w.-]+)$/);
   if (handleMatch) {
-    const res = await fetch(`https://www.youtube.com/@${handleMatch[1]}`, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-    });
-    const html = await res.text();
-    const cidMatch = html.match(/"channelId":"(UC[\w-]+)"/);
-    if (cidMatch) {
-      return `https://www.youtube.com/feeds/videos.xml?channel_id=${cidMatch[1]}`;
+    const handle = handleMatch[1];
+    const pageUrl = `https://www.youtube.com/@${handle}`;
+    const channelId = await scrapeYouTubeChannelId(pageUrl);
+    if (!channelId) {
+      throw new Error(
+        `Could not find channel ID for @${handle}. Make sure the channel exists and try again.`,
+      );
     }
+    return `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+  }
+
+  // youtube.com/c/name or youtube.com/user/name — resolve via page scrape
+  const legacyMatch = trimmed.match(/youtube\.com\/(?:c|user)\/([\w.-]+)/);
+  if (legacyMatch) {
+    const channelId = await scrapeYouTubeChannelId(trimmed);
+    if (!channelId) {
+      throw new Error(
+        `Could not resolve YouTube channel ID from ${trimmed}. Try using the @handle URL instead.`,
+      );
+    }
+    return `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
   }
 
   // Not a YouTube URL — return as-is (regular RSS/podcast feed)
-  return input;
+  return trimmed;
 }
 
-/** Validate a feed URL and return its name + type */
+/**
+ * Fetch a YouTube channel page and extract the UC... channel ID.
+ * Tries multiple patterns used across different YouTube page layouts.
+ */
+async function scrapeYouTubeChannelId(pageUrl: string): Promise<string | null> {
+  let html: string;
+  try {
+    const res = await fetch(pageUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+    html = await res.text();
+  } catch {
+    return null;
+  }
+
+  // Try multiple JSON patterns that appear in YouTube's initial page data
+  const patterns = [
+    /"channelId":"(UC[\w-]+)"/,
+    /"externalChannelId":"(UC[\w-]+)"/,
+    /"browseId":"(UC[\w-]+)"/,
+    /\/channel\/(UC[\w-]+)/,
+    /"id":"(UC[\w-]+)"/,
+  ];
+
+  for (const pattern of patterns) {
+    const m = html.match(pattern);
+    if (m) return m[1];
+  }
+
+  return null;
+}
+
+/** Validate an already-resolved feed URL and return its name + type */
 export async function validateFeed(url: string): Promise<{
   feedName: string;
   feedType: "youtube" | "podcast" | "blog";
   itemCount: number;
 }> {
-  const resolvedUrl = await resolveYouTubeFeedUrl(url);
-  const feed = await parser.parseURL(resolvedUrl);
+  const feed = await parser.parseURL(url);
 
   const feedName = feed.title ?? "Untitled Feed";
   const itemCount = feed.items.length;
-  const feedType = resolvedUrl.includes("youtube.com/feeds") ? "youtube" : "podcast";
+  const feedType = url.includes("youtube.com/feeds") ? "youtube" : "podcast";
 
   return { feedName, feedType, itemCount };
 }
