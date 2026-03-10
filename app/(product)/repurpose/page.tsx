@@ -26,10 +26,13 @@ export default async function RepurposePage() {
         _count: { select: { repurposes: true } },
       },
     }),
-    getUserPlan(userId),
+    getUserPlan(userId, { role: session.user.role }),
   ]);
 
-  const planConfig = getPlanConfig(userPlan.plan);
+  // Admins get ENTERPRISE via the role option above.
+  // canRepurpose is true for PRO + ENTERPRISE; false for FREE.
+  const canRepurpose =
+    session.user.role === "admin" || getPlanConfig(userPlan.plan).repurposeAccess;
 
   return (
     <div className="flex-1 overflow-auto bg-[#F8FAFC]">
@@ -54,7 +57,7 @@ export default async function RepurposePage() {
             inputType: p.inputType,
             repurposeCount: p._count.repurposes,
           }))}
-          canRepurpose={planConfig.repurposeAccess}
+          canRepurpose={canRepurpose}
           upgradeHref="/billing"
         />
       </div>
