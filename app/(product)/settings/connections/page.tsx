@@ -19,6 +19,7 @@ export default async function ConnectionsPage() {
 
   const linkedin = accounts.find((a) => a.platform === "linkedin") ?? null;
   const x = accounts.find((a) => a.platform === "x") ?? null;
+  const beehiiv = accounts.find((a) => a.platform === "beehiiv") ?? null;
 
   return (
     <div className="flex-1 overflow-auto">
@@ -51,34 +52,15 @@ export default async function ConnectionsPage() {
                 }
               : null
           }
+          beehiiv={
+            beehiiv
+              ? {
+                  publicationName: beehiiv.platformUsername ?? null,
+                  connectedAt: beehiiv.connectedAt.toISOString(),
+                }
+              : null
+          }
         />
-
-        <section className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-neutral-100">
-            <h2 className="text-sm font-semibold text-neutral-900">Newsletter</h2>
-            <p className="text-xs text-neutral-400 mt-0.5">Coming soon</p>
-          </div>
-          <div className="px-6 py-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-neutral-700">Beehiiv</p>
-                <p className="text-xs text-neutral-400">Publish newsletter sections directly</p>
-              </div>
-              <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-400">
-                Coming soon
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-neutral-700">Substack</p>
-                <p className="text-xs text-neutral-400">Publish newsletter sections directly</p>
-              </div>
-              <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-400">
-                Coming soon
-              </span>
-            </div>
-          </div>
-        </section>
       </div>
     </div>
   );

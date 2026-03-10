@@ -11,7 +11,9 @@ type Props = {
   newsletter: string;
   linkedInConnected: boolean;
   xConnected: boolean;
+  beehiivConnected: boolean;
   episodeTitle?: string | null;
+  packTitle?: string;
 };
 
 const LinkedInIcon = () => (
@@ -198,11 +200,34 @@ export default function ApproveClient({
   newsletter,
   linkedInConnected,
   xConnected,
+  beehiivConnected,
   episodeTitle,
+  packTitle,
 }: Props) {
   const [linkedinPost, setLinkedinPost] = useState(initialLinkedin);
   const [twitterPost, setTwitterPost] = useState(initialTwitter);
+  const [newsletterContent, setNewsletterContent] = useState(newsletter);
+  const [beehiivState, setBeehiivState] = useState<{ status: "idle" | "sending" | "sent" | "failed"; webUrl?: string; error?: string }>({ status: "idle" });
   const [tab, setTab] = useState<"linkedin" | "x" | "newsletter">("linkedin");
+
+  const sendToBeehiiv = async () => {
+    setBeehiivState({ status: "sending" });
+    try {
+      const res = await fetch("/api/publish/beehiiv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packId, approveToken, content: newsletterContent, title: packTitle }),
+      });
+      const data = (await res.json()) as { error?: string; webUrl?: string };
+      if (!res.ok) {
+        setBeehiivState({ status: "failed", error: data.error ?? "Failed to send to Beehiiv." });
+        return;
+      }
+      setBeehiivState({ status: "sent", webUrl: data.webUrl });
+    } catch {
+      setBeehiivState({ status: "failed", error: "Network error. Try again." });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -287,14 +312,59 @@ export default function ApproveClient({
           />
         )}
 
-        {/* Newsletter tab — read-only preview */}
+        {/* Newsletter tab */}
         {tab === "newsletter" && (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5 space-y-3">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5 space-y-4">
             <p className="text-sm font-semibold text-neutral-900">Newsletter section</p>
-            <div className="whitespace-pre-wrap text-sm text-neutral-700 leading-relaxed bg-neutral-50 rounded-xl px-4 py-3 border border-neutral-100">
-              {newsletter || "No newsletter content available."}
-            </div>
-            <p className="text-xs text-neutral-400">Copy and paste into your newsletter tool.</p>
+            <textarea
+              value={newsletterContent}
+              onChange={(e) => setNewsletterContent(e.target.value)}
+              rows={10}
+              className="w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm text-neutral-800 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[#4F46E5] transition-shadow"
+            />
+
+            {/* Beehiiv publish */}
+            {beehiivConnected ? (
+              beehiivState.status === "sent" ? (
+                <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                  <span className="text-sm font-semibold text-green-800">Draft created in Beehiiv!</span>
+                  {beehiivState.webUrl && (
+                    <a href={beehiivState.webUrl} target="_blank" rel="noopener noreferrer"
+                      className="ml-auto flex items-center gap-1 text-xs text-green-700 hover:underline">
+                      View <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {beehiivState.status === "failed" && (
+                    <p className="text-xs text-red-500">{beehiivState.error}</p>
+                  )}
+                  <button
+                    type="button"
+                    disabled={beehiivState.status === "sending" || !newsletterContent.trim()}
+                    onClick={sendToBeehiiv}
+                    className="flex items-center gap-2 rounded-xl border border-[#FF6B35] bg-white px-4 py-2.5 text-sm font-semibold text-[#FF6B35] hover:bg-orange-50 disabled:opacity-50 transition-colors"
+                  >
+                    {beehiivState.status === "sending" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <span className="font-bold text-xs bg-[#FF6B35] text-white px-1.5 py-0.5 rounded">BH</span>
+                    )}
+                    {beehiivState.status === "sending" ? "Creating draft..." : "Send to Beehiiv as draft"}
+                  </button>
+                </div>
+              )
+            ) : (
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+                <p className="text-xs text-neutral-500">
+                  Connect Beehiiv in{" "}
+                  <a href="/settings/connections" className="text-[#4F46E5] underline">Settings</a>{" "}
+                  to publish drafts directly.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

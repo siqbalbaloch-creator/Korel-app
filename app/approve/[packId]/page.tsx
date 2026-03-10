@@ -59,13 +59,17 @@ export default async function ApprovePage({ params, searchParams }: Props) {
   const twitterPost = twitterThread.length > 0 ? String(twitterThread[0]) : "";
 
   // Check connected accounts for the pack owner
-  const [linkedInAccount, xAccount] = await Promise.all([
+  const [linkedInAccount, xAccount, beehiivAccount] = await Promise.all([
     prisma.connectedAccount.findFirst({
       where: { userId: authorizedUserId!, platform: "linkedin", isActive: true },
       select: { id: true },
     }),
     prisma.connectedAccount.findFirst({
       where: { userId: authorizedUserId!, platform: "x", isActive: true },
+      select: { id: true },
+    }),
+    prisma.connectedAccount.findFirst({
+      where: { userId: authorizedUserId!, platform: "beehiiv", isActive: true },
       select: { id: true },
     }),
   ]);
@@ -81,7 +85,9 @@ export default async function ApprovePage({ params, searchParams }: Props) {
       newsletter={newsletterSummary}
       linkedInConnected={!!linkedInAccount}
       xConnected={!!xAccount}
+      beehiivConnected={!!beehiivAccount}
       episodeTitle={episodeTitle}
+      packTitle={pack.title}
     />
   );
 }

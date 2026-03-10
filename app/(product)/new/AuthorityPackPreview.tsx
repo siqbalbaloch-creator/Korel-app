@@ -650,7 +650,7 @@ export function AuthorityPackPreview({
                     />
                   </div>
                   <div className="px-5 pb-5">
-                    <NewsletterSection content={pack.highLeveragePosts.newsletterSummary} />
+                    <NewsletterSection content={pack.highLeveragePosts.newsletterSummary} packId="" packTitle="" beehiivConnected={false} />
                   </div>
                 </div>
               </section>

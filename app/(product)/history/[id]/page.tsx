@@ -393,6 +393,7 @@ export default async function HistoryDetailPage({ params }: HistoryDetailParams)
 
   const linkedInConnected = connectedAccounts.some((a) => a.platform === "linkedin");
   const xConnected = connectedAccounts.some((a) => a.platform === "x");
+  const beehiivConnected = connectedAccounts.some((a) => a.platform === "beehiiv");
 
   const toPublishRecord = (r: (typeof publishRecords)[number]) => ({
     id: r.id,
@@ -925,7 +926,12 @@ export default async function HistoryDetailPage({ params }: HistoryDetailParams)
 
             {hasNewsletter && (
               <section className="mt-8 border-t border-neutral-200 pt-8">
-                <NewsletterSection content={highLeveragePosts.newsletterSummary} />
+                <NewsletterSection
+                  content={highLeveragePosts.newsletterSummary}
+                  packId={pack.id}
+                  packTitle={pack.title}
+                  beehiivConnected={beehiivConnected}
+                />
               </section>
             )}
 
