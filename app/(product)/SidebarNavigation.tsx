@@ -2,16 +2,17 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { CreditCard, Folder, LayoutDashboard, LifeBuoy, Link2, Settings, Sparkles } from "lucide-react";
+import { CreditCard, Folder, LayoutDashboard, LifeBuoy, Link2, Rss, Settings, Sparkles } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard",             label: "Dashboard",   icon: LayoutDashboard, exact: false },
-  { href: "/new",                   label: "New Pack",    icon: Sparkles,        exact: false },
-  { href: "/packs",                 label: "All Packs",   icon: Folder,          exact: false },
-  { href: "/billing",               label: "Billing",     icon: CreditCard,      exact: false },
-  { href: "/support",               label: "Support",     icon: LifeBuoy,        exact: false },
-  { href: "/settings/connections",  label: "Connections", icon: Link2,           exact: false },
-  { href: "/settings",              label: "Settings",    icon: Settings,        exact: true  },
+  { href: "/dashboard",             label: "Dashboard",        icon: LayoutDashboard, exact: false },
+  { href: "/new",                   label: "New Pack",         icon: Sparkles,        exact: false },
+  { href: "/packs",                 label: "All Packs",        icon: Folder,          exact: false },
+  { href: "/billing",               label: "Billing",          icon: CreditCard,      exact: false },
+  { href: "/support",               label: "Support",          icon: LifeBuoy,        exact: false },
+  { href: "/settings/connections",  label: "Connections",      icon: Link2,           exact: false },
+  { href: "/settings/feeds",        label: "Content Sources",  icon: Rss,             exact: false },
+  { href: "/settings",              label: "Settings",         icon: Settings,        exact: true  },
 ];
 
 export default function SidebarNavigation() {

@@ -64,6 +64,7 @@ model User {
   waitlistEntries   WaitlistEntry[]
   connectedAccounts ConnectedAccount[]
   publishRecords    PublishRecord[]
+  rssFeeds          RssFeed[]
 
   createdAt DateTime @default(now())
 }
@@ -205,6 +206,7 @@ model AuthorityPack {
   repurposes     AuthorityPackRepurpose[]
   sendLogs       PackSendLog[]
   publishRecords PublishRecord[]
+  rssEpisode     RssEpisode?
 }
 
 model AuthorityPackRepurpose {
@@ -387,6 +389,50 @@ model PublishRecord {
 
   @@index([packId])
   @@index([userId])
+  @@index([status])
+}
+
+model RssFeed {
+  id                String      @id @default(cuid())
+  userId            String
+  feedUrl           String
+  feedName          String?
+  feedType          String      // "podcast" | "youtube" | "blog"
+  isActive          Boolean     @default(true)
+  lastCheckedAt     DateTime?
+  lastEpisodeGuid   String?
+  lastEpisodeTitle  String?
+  checkCount        Int         @default(0)
+  createdAt         DateTime    @default(now())
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episodes RssEpisode[]
+
+  @@unique([userId, feedUrl])
+  @@index([userId])
+  @@index([isActive])
+}
+
+model RssEpisode {
+  id          String    @id @default(cuid())
+  feedId      String
+  guid        String
+  title       String
+  description String?
+  audioUrl    String?
+  youtubeUrl  String?
+  publishedAt DateTime?
+  transcript  String?
+  packId      String?   @unique
+  status      String    // "discovered" | "needs_transcript" | "pack_generated" | "notified"
+  notifiedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  feed RssFeed        @relation(fields: [feedId], references: [id], onDelete: Cascade)
+  pack AuthorityPack? @relation(fields: [packId], references: [id], onDelete: SetNull)
+
+  @@unique([feedId, guid])
+  @@index([feedId])
   @@index([status])
 }
 

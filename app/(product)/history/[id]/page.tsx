@@ -367,6 +367,11 @@ export default async function HistoryDetailPage({ params }: HistoryDetailParams)
       })
     : [];
 
+  const rssEpisode = await prisma.rssEpisode.findUnique({
+    where: { packId: id },
+    include: { feed: { select: { feedName: true, feedType: true } } },
+  });
+
   const [connectedAccounts, publishRecords] = await Promise.all([
     prisma.connectedAccount.findMany({
       where: { userId, isActive: true },
@@ -589,6 +594,33 @@ export default async function HistoryDetailPage({ params }: HistoryDetailParams)
               </span>
             )}
         </div>
+
+        {/* RSS Episode context banner */}
+        {rssEpisode && (
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-5 py-3 text-sm shadow-sm">
+            <span className="text-lg">{rssEpisode.feed.feedType === "youtube" ? "📺" : "🎙"}</span>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-neutral-900 truncate">
+                Generated from RSS feed — &ldquo;{rssEpisode.title}&rdquo;
+              </p>
+              <p className="text-xs text-neutral-400">
+                {rssEpisode.feed.feedName ?? "RSS feed"}
+                {rssEpisode.publishedAt &&
+                  ` · Published ${new Date(rssEpisode.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+              </p>
+            </div>
+            {(rssEpisode.youtubeUrl ?? rssEpisode.audioUrl) && (
+              <a
+                href={rssEpisode.youtubeUrl ?? rssEpisode.audioUrl ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 text-xs text-[#4F46E5] hover:underline"
+              >
+                {rssEpisode.youtubeUrl ? "Watch" : "Listen"} →
+              </a>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8 items-start">
           <div>

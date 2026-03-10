@@ -129,7 +129,7 @@ export default async function DashboardPage({
     );
   }
 
-  const [stats, planInfo, recentPacks, lowScorePack, qualityTrendPacksRaw, radarResult] = await Promise.all([
+  const [stats, planInfo, recentPacks, lowScorePack, qualityTrendPacksRaw, radarResult, rssFeeds] = await Promise.all([
     getUserStats(userId),
     getUserPlan(userId, { role: session.user.role }),
     prisma.authorityPack.findMany({
@@ -148,6 +148,19 @@ export default async function DashboardPage({
       select: { qualityScore: true },
     }),
     getWeaknessRadarForUser(userId),
+    prisma.rssFeed.findMany({
+      where: { userId, isActive: true },
+      select: {
+        id: true,
+        feedName: true,
+        feedType: true,
+        lastCheckedAt: true,
+        lastEpisodeTitle: true,
+        checkCount: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+    }),
   ]);
   const qualityTrendPacks: QualityTrendPack[] = qualityTrendPacksRaw;
 
@@ -317,6 +330,58 @@ export default async function DashboardPage({
             <QualityTrendCard avg={recentAvg} trend={qualityTrend} />
           )}
         </div>
+
+        {/* Content Sources widget */}
+        {rssFeeds.length > 0 ? (
+          <div className="rounded-xl border border-neutral-200 bg-white shadow-sm p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-neutral-900">Content Sources</h2>
+              <Link href="/settings/feeds" className="text-xs text-[#4F46E5] hover:underline">
+                Manage
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {rssFeeds.map((feed) => (
+                <div key={feed.id} className="flex items-center justify-between gap-3 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium text-neutral-900 truncate">
+                      {feed.feedName ?? "Untitled feed"}
+                    </p>
+                    {feed.lastEpisodeTitle && (
+                      <p className="text-xs text-neutral-400 truncate">
+                        Last: &ldquo;{feed.lastEpisodeTitle}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-semibold text-neutral-900">{feed.checkCount}</p>
+                    <p className="text-xs text-neutral-400">packs</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {rssFeeds.reduce((sum, f) => sum + f.checkCount, 0) > 0 && (
+              <p className="mt-4 text-xs text-neutral-400 border-t border-neutral-100 pt-3">
+                {rssFeeds.reduce((sum, f) => sum + f.checkCount, 0)} packs auto-generated from feeds
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 p-5 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-neutral-700">Auto-generate from your podcast</p>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                Add your RSS feed and Korel generates a pack every time a new episode drops.
+              </p>
+            </div>
+            <Link
+              href="/settings/feeds"
+              className="shrink-0 rounded-lg bg-[#4F46E5] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4338CA] transition-colors"
+            >
+              Add feed
+            </Link>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           <DashboardClient
