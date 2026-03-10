@@ -256,6 +256,14 @@ export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) 
         Paid plans are opening in phases. Join the waitlist to get notified.
       </p>
 
+      <p className="mt-3 text-center text-xs text-[#94A3B8]">
+        All paid plans include a{" "}
+        <a href="/refund" className="underline hover:text-[#64748B] transition-colors">
+          7-day money-back guarantee
+        </a>
+        . Payments processed by Paddle.
+      </p>
+
       {modalPlan && (
         <PricingWaitlistModal
           plan={modalPlan}

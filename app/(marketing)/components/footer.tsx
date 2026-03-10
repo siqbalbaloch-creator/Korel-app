@@ -10,6 +10,7 @@ const PRODUCT_LINKS = [
 const LEGAL_LINKS = [
   { label: "Terms of Service", href: "/terms" },
   { label: "Privacy Policy", href: "/privacy" },
+  { label: "Refund Policy", href: "/refund" },
 ];
 
 const SUPPORT_LINKS = [
