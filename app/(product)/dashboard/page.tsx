@@ -129,7 +129,7 @@ export default async function DashboardPage({
     );
   }
 
-  const [stats, planInfo, recentPacks, lowScorePack, qualityTrendPacksRaw, radarResult, rssFeeds] = await Promise.all([
+  const [stats, planInfo, recentPacks, lowScorePack, qualityTrendPacksRaw, radarResult, rssFeeds, linkedInAccount] = await Promise.all([
     getUserStats(userId),
     getUserPlan(userId, { role: session.user.role }),
     prisma.authorityPack.findMany({
@@ -161,6 +161,10 @@ export default async function DashboardPage({
       orderBy: { createdAt: "desc" },
       take: 3,
     }),
+    prisma.connectedAccount.findFirst({
+      where: { userId, platform: "linkedin", isActive: true },
+      select: { id: true },
+    }),
   ]);
   const qualityTrendPacks: QualityTrendPack[] = qualityTrendPacksRaw;
 
@@ -190,6 +194,12 @@ export default async function DashboardPage({
     ? `/new?prefill=${encodeURIComponent(lastPack.originalInput.trim())}`
     : "/new";
 
+  // Onboarding checklist
+  const hasPack = stats.totalPacks > 0;
+  const hasLinkedIn = !!linkedInAccount;
+  const hasFeed = rssFeeds.length > 0;
+  const onboardingComplete = hasPack && hasLinkedIn && hasFeed;
+
   const remainingForClient =
     planInfo.remaining === Infinity ? 999 : planInfo.remaining;
 
@@ -200,7 +210,7 @@ export default async function DashboardPage({
   if (stats.totalPacks === 0) {
     return (
       <div className="flex-1 overflow-auto">
-        <div className="max-w-[720px] mx-auto px-6 py-20">
+        <div className="max-w-[720px] mx-auto px-6 py-20 space-y-6">
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm p-10 text-center space-y-4">
             <h2 className="text-xl font-semibold text-neutral-900">
               You haven&apos;t created your first Authority Pack yet.
@@ -215,6 +225,43 @@ export default async function DashboardPage({
             >
               Generate Your First Pack
             </Link>
+          </div>
+          <div className="rounded-xl border border-[#C7D2FE] bg-[#EEF2FF] p-5 space-y-3">
+            <p className="text-sm font-semibold text-[#4338CA]">
+              🚀 Set up your Authority Engine (0/3 steps complete)
+            </p>
+            <ul className="space-y-2">
+              <li className="flex items-center gap-3">
+                <span className="shrink-0 text-base text-neutral-300">⬜</span>
+                <Link href="/new" className="text-sm font-medium text-[#4F46E5] hover:underline">
+                  Create your first pack
+                </Link>
+              </li>
+              <li className="flex items-center gap-3">
+                <span className={`shrink-0 text-base ${hasLinkedIn ? "text-green-500" : "text-neutral-300"}`}>
+                  {hasLinkedIn ? "✅" : "⬜"}
+                </span>
+                {hasLinkedIn ? (
+                  <span className="text-sm text-neutral-500 line-through">Connect LinkedIn</span>
+                ) : (
+                  <Link href="/settings/connections" className="text-sm font-medium text-[#4F46E5] hover:underline">
+                    Connect LinkedIn
+                  </Link>
+                )}
+              </li>
+              <li className="flex items-center gap-3">
+                <span className={`shrink-0 text-base ${hasFeed ? "text-green-500" : "text-neutral-300"}`}>
+                  {hasFeed ? "✅" : "⬜"}
+                </span>
+                {hasFeed ? (
+                  <span className="text-sm text-neutral-500 line-through">Add your content source</span>
+                ) : (
+                  <Link href="/settings/feeds" className="text-sm font-medium text-[#4F46E5] hover:underline">
+                    Add your content source
+                  </Link>
+                )}
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -232,6 +279,53 @@ export default async function DashboardPage({
             {motivationalMessage(stats.totalPacks)}
           </p>
         </div>
+
+        {/* Getting Started checklist — hidden once all steps complete */}
+        {!onboardingComplete && (
+          <div className="rounded-xl border border-[#C7D2FE] bg-[#EEF2FF] p-5 space-y-3">
+            <p className="text-sm font-semibold text-[#4338CA]">
+              🚀 Set up your Authority Engine ({[hasPack, hasLinkedIn, hasFeed].filter(Boolean).length}/3 steps complete)
+            </p>
+            <ul className="space-y-2">
+              <li className="flex items-center gap-3">
+                <span className={`shrink-0 text-base ${hasPack ? "text-green-500" : "text-neutral-300"}`}>
+                  {hasPack ? "✅" : "⬜"}
+                </span>
+                {hasPack ? (
+                  <span className="text-sm text-neutral-500 line-through">Create your first pack</span>
+                ) : (
+                  <Link href="/new" className="text-sm font-medium text-[#4F46E5] hover:underline">
+                    Create your first pack
+                  </Link>
+                )}
+              </li>
+              <li className="flex items-center gap-3">
+                <span className={`shrink-0 text-base ${hasLinkedIn ? "text-green-500" : "text-neutral-300"}`}>
+                  {hasLinkedIn ? "✅" : "⬜"}
+                </span>
+                {hasLinkedIn ? (
+                  <span className="text-sm text-neutral-500 line-through">Connect LinkedIn</span>
+                ) : (
+                  <Link href="/settings/connections" className="text-sm font-medium text-[#4F46E5] hover:underline">
+                    Connect LinkedIn
+                  </Link>
+                )}
+              </li>
+              <li className="flex items-center gap-3">
+                <span className={`shrink-0 text-base ${hasFeed ? "text-green-500" : "text-neutral-300"}`}>
+                  {hasFeed ? "✅" : "⬜"}
+                </span>
+                {hasFeed ? (
+                  <span className="text-sm text-neutral-500 line-through">Add your content source</span>
+                ) : (
+                  <Link href="/settings/feeds" className="text-sm font-medium text-[#4F46E5] hover:underline">
+                    Add your content source
+                  </Link>
+                )}
+              </li>
+            </ul>
+          </div>
+        )}
 
         {/* Activity Memory Strip */}
         {lastPack && lastPackDays !== null && (

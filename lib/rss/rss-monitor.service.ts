@@ -171,7 +171,9 @@ async function checkFeed(feed: FeedWithUser): Promise<{
     packInput = content;
   }
 
-  if (packInput.trim().length < 200) {
+  // For YouTube feeds packInput is a URL — transcript is fetched inside generateAuthorityPack.
+  // Only apply the length gate for podcast/blog feeds where show notes are used directly.
+  if (feed.feedType !== "youtube" && packInput.trim().length < 200) {
     await prisma.rssEpisode.update({
       where: { id: episode.id },
       data: { status: "needs_transcript" },
