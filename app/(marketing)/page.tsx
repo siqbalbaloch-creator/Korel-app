@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Navbar } from "./components/navbar";
 import { Hero } from "./components/hero";
+import { SocialProofBar } from "./components/social-proof-bar";
 import { HowKorelWorks } from "./components/how-korel-works";
-import { Pricing } from "./components/pricing";
+import { BeforeAfter } from "./components/before-after";
+import { PlatformCards } from "./components/platform-cards";
 import { WhyNotChatGPT } from "./components/WhyNotChatGPT";
+import { Pricing } from "./components/pricing";
 import { FAQ } from "./components/FAQ";
 import { FinalCTA } from "./components/final-cta";
 import { Footer } from "./components/footer";
 import { ScrollOnLoad } from "./components/ScrollOnLoad";
-import { ExampleAuthorityContent } from "./components/example-authority-content";
-import { DemoAuthorityPack } from "./components/DemoAuthorityPack";
 
 export const metadata: Metadata = {
   alternates: { canonical: "https://www.usekorel.com" },
@@ -24,20 +25,20 @@ const jsonLd = {
   operatingSystem: "Web",
   url: "https://www.usekorel.com",
   description:
-    "Authority Distribution Engine for B2B Founders. Turn founder interviews and thought leadership into LinkedIn posts, X threads, and newsletters — automatically.",
+    "AI Agent for B2B Founders. Monitors your podcast and interviews, generates LinkedIn posts, X threads, and newsletters automatically — then publishes while you sleep.",
   offers: [
     { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" },
     { "@type": "Offer", name: "Starter", price: "49", priceCurrency: "USD" },
     { "@type": "Offer", name: "Professional", price: "149", priceCurrency: "USD" },
   ],
   featureList: [
-    "Strategic Authority Map (SAM) generation",
-    "LinkedIn platform-ready assets",
+    "Automated podcast and RSS monitoring",
+    "LinkedIn authority post generation",
     "X / Twitter thread generation",
-    "Newsletter format output",
-    "Messaging Strength evaluation",
-    "Authority Consistency tracking",
-    "Weakness Radar insights",
+    "Beehiiv newsletter integration",
+    "Auto-publish to LinkedIn and X",
+    "Content calendar and scheduling",
+    "Back catalog repurposing",
   ],
 };
 
@@ -60,9 +61,10 @@ export default function MarketingPage() {
       </Suspense>
       <Navbar />
       <Hero />
-      <DemoAuthorityPack />
+      <SocialProofBar />
       <HowKorelWorks />
-      <ExampleAuthorityContent />
+      <BeforeAfter />
+      <PlatformCards />
       <WhyNotChatGPT />
       <Pricing />
       <FAQ />

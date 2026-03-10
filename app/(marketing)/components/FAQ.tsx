@@ -5,7 +5,7 @@ import { useState } from "react";
 const FAQS = [
   {
     q: "What inputs can I use?",
-    a: "You can paste a YouTube transcript, interview transcript, investor update, product update, strategy memo, or customer story. Any long-form founder-sourced text works. Select the appropriate Input Type when creating your pack so the extraction is biased correctly.",
+    a: "Podcast RSS feeds, YouTube channels, or paste any transcript manually. Korel also monitors Indie Hackers, Starter Story, and Failory for founder interviews daily.",
   },
   {
     q: "Does Korel auto-post to LinkedIn or X?",
@@ -25,7 +25,15 @@ const FAQS = [
   },
   {
     q: "When are paid plans available?",
-    a: "Korel is live and accepting subscribers now. See our pricing page to get started.",
+    a: "Paid plans are launching very soon. Create your free account now to lock in early access pricing.",
+  },
+  {
+    q: "Do I need to be doing interviews to use Korel?",
+    a: "No. If you have a podcast, YouTube channel, or any recorded content, Korel monitors it automatically. If not, paste any transcript — a talk you gave, an investor update, a strategy memo — and Korel generates your content pack instantly.",
+  },
+  {
+    q: "How is this different from hiring a content writer?",
+    a: "A content writer costs $500-2000/month, needs briefing, and produces one piece at a time. Korel monitors all your content sources automatically, generates a full pack in seconds, and publishes directly to your platforms — for $49/month.",
   },
   {
     q: "How is my data handled?",
