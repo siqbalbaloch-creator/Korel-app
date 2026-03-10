@@ -5,7 +5,7 @@
 - **Part B** ✅ Complete
 - **Part C** ✅ Complete (+ hardening pass done)
 - **Part D** ✅ Complete
-- **Part E** ⏳ Not started
+- **Part E** ✅ Complete
 
 ---
 
@@ -153,12 +153,23 @@ Stored in existing `ConnectedAccount` table:
 
 ---
 
-## Part E — What Still Needs Building
+## Part E — Back Catalog Repurposing ✅
 
-> **Part E** (not started — confirm scope before building)
+### New files:
+- `app/(product)/repurpose/page.tsx` — server component
+  - Fetches all user packs with `qualityScore`, `angle`, `inputType`, `_count.repurposes`
+  - Checks `repurposeAccess` via `getPlanConfig(userPlan.plan)`
+  - Serializes dates, passes packs + `canRepurpose` + `upgradeHref` to `RepurposeClient`
+- `app/(product)/repurpose/RepurposeClient.tsx` — client component
+  - **Step 1 — Select**: Format picker (4 cards: LinkedIn Post / Twitter Hooks / Blog / Newsletter) + pack list with checkboxes, "Select all" toggle, quality scores, angle badges, repurpose count
+  - **Step 2 — Generating**: Sequential async processing with progress bar + per-pack status indicator (pending / active / done)
+  - **Step 3 — Results**: Per-pack result cards with generated content, per-card copy button, "Open pack" link, "Copy All" button (all results joined by `---`), "Start over" to return to selection
+  - FREE users see disabled state with "Upgrade to repurpose" CTA button
+  - No new API routes — calls existing `/api/packs/[id]/repurpose` POST endpoint for each pack
 
-Original spec mentioned Parts D and E but details were cut off before context reset.
-**Ask user to confirm Part E scope before starting.**
+### Modified:
+- `app/(product)/SidebarNavigation.tsx` — added Repurpose nav item with `Layers` icon (between Calendar and Billing)
+- `middleware.ts` — added `/repurpose` to `AUTH_PROTECTED_PREFIXES`
 
 ---
 

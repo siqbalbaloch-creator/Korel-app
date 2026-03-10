@@ -20,6 +20,7 @@ const AUTH_PROTECTED_PREFIXES = [
   "/settings",
   "/history",
   "/calendar",
+  "/repurpose",
 ];
 
 function isEmbeddedBrowser(ua: string): boolean {
