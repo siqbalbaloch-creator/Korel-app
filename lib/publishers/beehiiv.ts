@@ -14,24 +14,36 @@ export type BeehiivPost = {
 
 /**
  * Validate API key + publication ID and return publication metadata.
- * Throws if the credentials are invalid.
+ * Throws human-readable errors on failure.
  */
 export async function validateBeehiivCredentials(
   apiKey: string,
   publicationId: string,
 ): Promise<BeehiivPublication> {
-  const res = await fetch(`${BEEHIIV_API}/publications/${publicationId}`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BEEHIIV_API}/publications/${publicationId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+  } catch {
+    throw new Error("Could not reach Beehiiv. Check your connection and try again.");
+  }
 
   if (res.status === 401 || res.status === 403) {
-    throw new Error("Invalid API key — check your Beehiiv API key.");
+    throw new Error(
+      "Invalid API key. In your Beehiiv dashboard go to Settings \u2192 Integrations \u2192 API and copy the key.",
+    );
   }
   if (res.status === 404) {
-    throw new Error("Publication not found — check your Publication ID.");
+    throw new Error(
+      "Publication not found. Copy the ID from your Beehiiv URL: app.beehiiv.com/publications/pub_xxx",
+    );
+  }
+  if (res.status === 429) {
+    throw new Error("Beehiiv rate limit hit \u2014 try again in a minute.");
   }
   if (!res.ok) {
-    throw new Error(`Beehiiv API error: ${res.status}`);
+    throw new Error(`Beehiiv returned an unexpected error (${res.status}). Try again.`);
   }
 
   const json = (await res.json()) as { data: { id: string; name: string; web_url?: string } };
@@ -45,6 +57,7 @@ export async function validateBeehiivCredentials(
 /**
  * Create a draft post in Beehiiv.
  * Returns the created post's id and web URL.
+ * Throws human-readable errors on failure.
  */
 export async function createBeehiivDraft(
   apiKey: string,
@@ -52,26 +65,43 @@ export async function createBeehiivDraft(
   title: string,
   contentHtml: string,
 ): Promise<BeehiivPost> {
-  const res = await fetch(`${BEEHIIV_API}/publications/${publicationId}/posts`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      title,
-      content_tags: [],
-      status: "draft",
-      content_html: contentHtml,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BEEHIIV_API}/publications/${publicationId}/posts`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title,
+        content_tags: [],
+        status: "draft",
+        content_html: contentHtml,
+      }),
+    });
+  } catch {
+    throw new Error("Could not reach Beehiiv. Check your connection and try again.");
+  }
 
   if (res.status === 401 || res.status === 403) {
-    throw new Error("Beehiiv API key rejected — reconnect your account.");
+    throw new Error(
+      "Beehiiv API key rejected. Go to Settings \u2192 Connected Accounts and reconnect Beehiiv.",
+    );
+  }
+  if (res.status === 404) {
+    throw new Error(
+      "Publication not found. Go to Settings \u2192 Connected Accounts and reconnect Beehiiv with the correct Publication ID.",
+    );
+  }
+  if (res.status === 429) {
+    throw new Error("Beehiiv rate limit hit \u2014 try again in a minute.");
   }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Beehiiv post creation failed (${res.status}): ${text.slice(0, 200)}`);
+    throw new Error(
+      `Beehiiv returned an unexpected error (${res.status}). ${text.slice(0, 120)}`.trim(),
+    );
   }
 
   const json = (await res.json()) as { data: { id: string; web_url?: string; status: string } };

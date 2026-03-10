@@ -2,12 +2,13 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { CreditCard, Folder, LayoutDashboard, LifeBuoy, Link2, Rss, Settings, Sparkles } from "lucide-react";
+import { CalendarDays, CreditCard, Folder, LayoutDashboard, LifeBuoy, Link2, Rss, Settings, Sparkles } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard",             label: "Dashboard",        icon: LayoutDashboard, exact: false },
   { href: "/new",                   label: "New Pack",         icon: Sparkles,        exact: false },
   { href: "/packs",                 label: "All Packs",        icon: Folder,          exact: false },
+  { href: "/calendar",              label: "Calendar",         icon: CalendarDays,    exact: false },
   { href: "/billing",               label: "Billing",          icon: CreditCard,      exact: false },
   { href: "/support",               label: "Support",          icon: LifeBuoy,        exact: false },
   { href: "/settings/connections",  label: "Connections",      icon: Link2,           exact: false },

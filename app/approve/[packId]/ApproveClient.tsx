@@ -326,14 +326,22 @@ export default function ApproveClient({
             {/* Beehiiv publish */}
             {beehiivConnected ? (
               beehiivState.status === "sent" ? (
-                <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
-                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                  <span className="text-sm font-semibold text-green-800">Draft created in Beehiiv!</span>
-                  {beehiivState.webUrl && (
-                    <a href={beehiivState.webUrl} target="_blank" rel="noopener noreferrer"
-                      className="ml-auto flex items-center gap-1 text-xs text-green-700 hover:underline">
-                      View <ExternalLink className="h-3 w-3" />
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                    <span className="text-sm font-semibold text-green-800">Draft created in Beehiiv</span>
+                  </div>
+                  {beehiivState.webUrl ? (
+                    <a
+                      href={beehiivState.webUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 rounded-xl bg-[#FF6B35] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e55a25] transition-colors"
+                    >
+                      Open draft in Beehiiv <ExternalLink className="h-3.5 w-3.5" />
                     </a>
+                  ) : (
+                    <p className="text-xs text-green-700">Open your Beehiiv dashboard to review and send.</p>
                   )}
                 </div>
               ) : (

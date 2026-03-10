@@ -70,14 +70,22 @@ export default function NewsletterSection({ content, packId, packTitle, beehiivC
         <div className="px-5 pb-5 border-t border-neutral-100 pt-4">
           {beehiivConnected ? (
             beehiivState.status === "sent" ? (
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
-                <span className="text-sm text-green-700">Draft created in Beehiiv</span>
-                {beehiivState.webUrl && (
-                  <a href={beehiivState.webUrl} target="_blank" rel="noopener noreferrer"
-                    className="ml-auto flex items-center gap-1 text-xs text-[#4F46E5] hover:underline">
-                    View <ExternalLink className="h-3 w-3" />
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                  <span className="text-sm font-medium text-green-700">Draft created in Beehiiv</span>
+                </div>
+                {beehiivState.webUrl ? (
+                  <a
+                    href={beehiivState.webUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#FF6B35] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#e55a25] transition-colors"
+                  >
+                    Open draft in Beehiiv <ExternalLink className="h-3 w-3" />
                   </a>
+                ) : (
+                  <p className="text-xs text-neutral-500">Open your Beehiiv dashboard to review and send.</p>
                 )}
               </div>
             ) : (

@@ -112,6 +112,7 @@ function BeehiivSection({ initial }: { initial: BeehiivInfo | null }) {
   const [saving, setSaving] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justConnectedName, setJustConnectedName] = useState<string | null>(null);
 
   const save = async () => {
     if (!apiKey.trim() || !publicationId.trim()) {
@@ -131,7 +132,9 @@ function BeehiivSection({ initial }: { initial: BeehiivInfo | null }) {
         setError(data.error ?? "Failed to connect. Check your credentials.");
         return;
       }
-      setAccount({ publicationName: data.publicationName ?? null, connectedAt: new Date().toISOString() });
+      const name = data.publicationName ?? null;
+      setAccount({ publicationName: name, connectedAt: new Date().toISOString() });
+      setJustConnectedName(name ?? "your publication");
       setShowForm(false);
       setApiKey("");
       setPublicationId("");
@@ -156,6 +159,21 @@ function BeehiivSection({ initial }: { initial: BeehiivInfo | null }) {
 
   return (
     <div className="space-y-4">
+      {justConnectedName && (
+        <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
+          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+          <p className="text-sm font-semibold text-green-800">
+            Connected to {justConnectedName}
+          </p>
+          <button
+            type="button"
+            onClick={() => setJustConnectedName(null)}
+            className="ml-auto text-xs text-green-600 hover:text-green-800"
+          >
+            &times;
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-4 py-1">
         <div className="flex items-center gap-3 min-w-0">
           <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-[#FF6B35] text-white text-xs font-bold">BH</span>
