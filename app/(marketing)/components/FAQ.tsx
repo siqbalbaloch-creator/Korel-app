@@ -9,7 +9,7 @@ const FAQS = [
   },
   {
     q: "Does Korel auto-post to LinkedIn or X?",
-    a: "No. Korel generates structured, ready-to-copy assets — LinkedIn posts, X threads, and newsletters. You review and publish them yourself. This is intentional: your authority should be published with your judgment, not automated.",
+    a: "Yes. Connect your LinkedIn and X accounts in Settings → Connections. After generating a pack, click Publish Now or schedule for later. Korel publishes directly to your connected accounts.",
   },
   {
     q: "Can I edit the outputs?",
@@ -25,7 +25,7 @@ const FAQS = [
   },
   {
     q: "When are paid plans available?",
-    a: "Paid plans (Starter, Professional, Enterprise) are coming soon. You can join the waitlist now and you will be notified when enrollment opens. Free accounts get 3 packs.",
+    a: "Korel is live and accepting subscribers now. See our pricing page to get started.",
   },
   {
     q: "How is my data handled?",
