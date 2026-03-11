@@ -185,7 +185,23 @@ function WidgetPreview() {
   );
 }
 
+const PLATFORMS = ["LinkedIn", "X", "Newsletter"];
+
 export function Hero() {
+  const [platformIndex, setPlatformIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setPlatformIndex((i) => (i + 1) % PLATFORMS.length);
+        setVisible(true);
+      }, 350);
+    }, 2400);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <section
       style={{
@@ -233,24 +249,29 @@ export function Hero() {
             style={{
               color: "#1F2937",
               fontWeight: 700,
-              fontSize: "clamp(38px, 5vw, 60px)",
-              lineHeight: 1.1,
+              fontSize: "clamp(32px, 4.2vw, 54px)",
+              lineHeight: 1.15,
               letterSpacing: "-0.03em",
               margin: "0 0 20px",
             }}
           >
-            Publish everywhere,
+            Turn your podcast into
             <br />
             <span
               style={{
+                display: "block",
                 background: "linear-gradient(135deg, #4338CA 0%, #7C3AED 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
+                opacity: visible ? 1 : 0,
+                transform: visible ? "translateY(0)" : "translateY(-10px)",
+                transition: "opacity 0.35s ease, transform 0.35s ease",
               }}
             >
-              automatically.
+              {PLATFORMS[platformIndex]}
             </span>
+            content, automatically.
           </h1>
 
           <p
