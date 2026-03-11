@@ -15,7 +15,7 @@ export interface OutreachEmailResult {
   body: string;
 }
 
-const SYSTEM_PROMPT = `You are writing cold outreach emails on behalf of Saqib, founder of Korel. Follow the exact structure provided — do not add any extra lines, do not use fluff or corporate language.`;
+const SYSTEM_PROMPT = `You are writing cold outreach emails on behalf of Saqib, founder of Korel. Follow the exact structure provided — do not add any extra lines, do not change the wording, do not use fluff or corporate language.`;
 
 function buildUserPrompt({
   founderName,
@@ -24,62 +24,59 @@ function buildUserPrompt({
   interviewSummary,
   generatedPost,
 }: OutreachEmailParams): string {
-  return `Write a cold outreach email from Saqib, founder of Korel, to a bootstrapped founder.
+  return `Write a cold outreach email from Saqib to a bootstrapped founder. Follow this EXACT structure word-for-word — only fill in the bracketed parts.
 
 Founder details:
 - First Name: ${founderName}
 - Company: ${company}
-- Interview Source: ${source} (e.g. Starter Story, Indie Hackers, Failory)
-- Interview summary or transcript excerpt: ${interviewSummary || "(not available — keep the reference general but mention the company)"}
-- Example LinkedIn post already generated from their interview: ${generatedPost}
+- Interview Source: ${source}
+- Interview summary / transcript excerpt: ${interviewSummary || "(not available — keep the reference general but mention the company name)"}
+- Generated LinkedIn post from their interview: ${generatedPost}
 
-Write the email in this EXACT structure — do not deviate:
+EXACT EMAIL STRUCTURE (output only the body, no subject line):
 
-1. Open with: "Hi ${founderName},"
+Hi ${founderName},
 
-2. One sentence referencing their specific interview and one specific idea they shared (pull from the interview summary — make it feel like you actually read it, not mass-blasted).
+I recently watched your interview on ${source} about [their product/company in one short phrase] — really enjoyed the part where you talked about [one specific idea or moment from the interview summary, 1 sentence max].
 
-3. One sentence introducing Korel:
-"I'm building an AI agent called Korel that runs founder content automatically."
+I built a small tool called Korel that turns founder interviews and conversations into structured authority content (LinkedIn posts, X threads, newsletters, etc.).
 
-4. One short paragraph explaining what it does when you connect an RSS feed, formatted as 4 bullet points:
-- extracts latest conversations or articles
-- generates LinkedIn posts, X threads, and newsletter ideas
-- repurposes them into multiple variations
-- lets you approve, schedule, or publish them directly
+Out of curiosity, I pasted a transcript from your interview into Korel and it generated a full content pack from it.
 
-5. Transition sentence:
-"Out of curiosity, I ran one of your recent interviews through it and it generated several posts from it."
+Here's one example it produced:
 
-6. Label "Example it produced:" followed by the generatedPost content pasted verbatim (do not summarise it).
+[paste the generatedPost content verbatim here]
 
-7. One line:
-"If you're curious, you can try it here (no signup needed): https://www.usekorel.com"
+It also generated:
+• X thread
+• Newsletter outline
+• Strategic hooks from the interview
 
-8. One line:
-"Just drop an RSS feed and it will generate content automatically."
+You can try the demo here (no signup required):
+https://www.usekorel.com
 
-9. Closing line:
-"Would love to know if something like this would actually be useful for founders like you."
+If you're creating content from interviews or podcasts, I'd love to know if this is useful or completely useless.
 
-10. Sign off:
-"— Saqib"
+Either way, your interview was great.
 
-Tone: conversational, genuine, founder-to-founder. No fluff. No corporate language.
-Do not add any lines not specified above.
-Do not invent specific details — only use what is provided.
-If interviewSummary is sparse, keep the reference in step 2 general but still mention the company name.
-Output only the email body — no subject line, no metadata.`;
+— Saqib
+
+RULES:
+- Fill in ONLY the bracketed placeholders using the founder details above.
+- Do NOT change any other wording.
+- Do NOT add extra sentences, bullets, or sections.
+- Paste the generatedPost content verbatim — do not summarise it.
+- If the interview summary is sparse, keep the reference in line 2 general (e.g. "about building ${company}") but still specific enough to feel personal.`;
 }
 
 export async function generateOutreachEmail(
   params: OutreachEmailParams,
 ): Promise<OutreachEmailResult> {
-  const subject = `I ran your ${params.company} interview through something — here's what it made`;
+  const subject = `I turned your ${params.source} interview into content`;
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
-    temperature: 0.7,
+    temperature: 0.4,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: buildUserPrompt(params) },

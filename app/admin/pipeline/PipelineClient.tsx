@@ -545,7 +545,16 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
   const sentLeads = localLeads.filter((l) => l.status === "SENT");
   const skippedLeads = localLeads.filter((l) => l.status === "SKIPPED");
 
+  // Build sets of already-emailed founders to prevent re-contacting them
+  const sentEmailSet = new Set(sentLeads.map((l) => l.email).filter(Boolean) as string[]);
+  const sentFounderKeys = new Set(
+    sentLeads.map((l) => `${l.firstName.toLowerCase()}|${l.company.toLowerCase()}`),
+  );
+
   const filteredReadyLeads = readyLeads.filter((l) => {
+    // Anti-spam: hide leads for founders we've already sent emails to
+    if (l.email && sentEmailSet.has(l.email)) return false;
+    if (sentFounderKeys.has(`${l.firstName.toLowerCase()}|${l.company.toLowerCase()}`)) return false;
     if (readyFilter === "growing_plus") {
       return l.revenueStage === "growing" || l.revenueStage === "scaled";
     }
@@ -674,6 +683,23 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
       delete next[id];
       return next;
     });
+  }
+
+  async function skipAllLeads() {
+    const ids = readyLeads.map((l) => l.id);
+    if (!ids.length) return;
+    await Promise.all(
+      ids.map((id) =>
+        fetch(`/api/admin/leads/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "SKIPPED" }),
+        }),
+      ),
+    );
+    setLocalLeads((prev) =>
+      prev.map((l) => (READY_STATUSES.includes(l.status) ? { ...l, status: "SKIPPED" } : l)),
+    );
   }
 
   async function editEmail(id: string, email: string) {
@@ -1055,6 +1081,13 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors"
               >
                 {sendingAll ? "📨 Sending…" : `✅ Approve All & Send All (${readyLeads.length})`}
+              </button>
+              <button
+                onClick={skipAllLeads}
+                disabled={sendingAll || readyLeads.length === 0}
+                className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-60 transition-colors"
+              >
+                ⏭ Skip All
               </button>
               {sendingAll && sendProgress && (
                 <div className="flex items-center gap-2">
