@@ -562,10 +562,35 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
   };
   const tabCount = (tab: Tab) => tabLeads[tab].length;
 
-  function buildLeadEmail(lead: Lead): { subject: string; body: string } {
-    const subject = `I turned your ${lead.interviewSource} interview into content`;
+  async function buildLeadEmail(lead: Lead): Promise<{ subject: string; body: string }> {
+    // Call GPT-4o to generate a personalised email body and subject.
+    // Falls back to a static template if the API call fails.
+    try {
+      const res = await fetch("/api/pipeline/generate-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          founderName: lead.firstName,
+          company: lead.company,
+          source: lead.interviewSource,
+          interviewSummary: [lead.interviewTopic, lead.specificMoment]
+            .filter(Boolean)
+            .join(" — "),
+          generatedPost: lead.linkedinPost,
+        }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { subject: string; body: string };
+        return data;
+      }
+    } catch {
+      // fall through to static fallback
+    }
+
+    // Static fallback — used if GPT call fails
+    const subject = `I ran your ${lead.company} interview through something — here's what it made`;
     const body = buildEmailBody({
-      note: `Hi {{first_name}},\n\nI recently watched your interview on {{interview_source}} about {{interview_topic}} — really enjoyed the part where {{specific_moment}}.\n\nI built a tool called Korel that turns founder interviews into structured authority content (LinkedIn posts, X threads, newsletters, etc.).\n\nOut of curiosity, I pasted a transcript from your interview into Korel and it generated a full content pack from it.\n\n— {{your_name}}`,
+      note: `Hi {{first_name}},\n\nI came across your work at {{company}} on {{interview_source}}.\n\nI'm building an AI agent called Korel that runs founder content automatically.\n\nWhen you connect an RSS feed it:\n- extracts your latest conversations or articles\n- generates LinkedIn posts, X threads, and newsletter ideas\n- repurposes them into multiple variations\n- lets you approve, schedule, or publish them directly\n\nOut of curiosity, I ran one of your recent interviews through it and it generated several posts from it.\n\nExample it produced:\n\n{{linkedin_post_preview}}\n\nIf you're curious, you can try it here (no signup needed): https://www.usekorel.com\n\nJust drop an RSS feed and it will generate content automatically.\n\nWould love to know if something like this would actually be useful for founders like you.\n\n— Saqib`,
       linkedinPost: lead.linkedinPost,
       twitterPost: lead.twitterPost,
       newsletter: lead.newsletter,
@@ -574,9 +599,9 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
       interviewSource: lead.interviewSource,
       interviewTopic: lead.interviewTopic,
       specificMoment: lead.specificMoment,
-      demoLink: "https://usekorel.com/demo",
+      demoLink: "https://usekorel.com",
       yourName: "Saqib",
-      include: { linkedin: true, twitter: true, newsletter: true },
+      include: { linkedin: false, twitter: false, newsletter: false },
     });
     return { subject, body };
   }
@@ -599,8 +624,8 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
       return;
     }
 
-    // Step 2: send email
-    const { subject, body } = buildLeadEmail(lead);
+    // Step 2: generate personalised email via GPT-4o, then send
+    const { subject, body } = await buildLeadEmail(lead);
     try {
       const sendRes = await fetch("/api/send-email", {
         method: "POST",
@@ -688,7 +713,7 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
     for (let i = 0; i < toSend.length; i++) {
       const lead = toSend[i];
       setSendProgress({ current: i, total: toSend.length });
-      const { subject, body } = buildLeadEmail(lead);
+      const { subject, body } = await buildLeadEmail(lead);
       try {
         const sendRes = await fetch("/api/send-email", {
           method: "POST",
@@ -807,7 +832,7 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
       const lead = toSend[i];
       setSendProgress({ current: i, total: toSend.length });
 
-      const { subject, body } = buildLeadEmail(lead);
+      const { subject, body } = await buildLeadEmail(lead);
 
       try {
         const sendRes = await fetch("/api/send-email", {

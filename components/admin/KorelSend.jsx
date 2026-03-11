@@ -10,31 +10,35 @@ import { useState, useEffect, useRef } from "react";
 import { korelAPI, KOREL_BASE, MOCK_PACKS } from "./korelAPI";
 import { sendViaGmail, buildEmailBody } from "./gmailSender";
 
-const DEFAULT_SUBJECT = "I turned your {{interview_source}} interview into content";
+const DEFAULT_SUBJECT = "I ran your {{company}} interview through something — here's what it made";
+// DEFAULT_NOTE is the fallback template used in bulk/schedule sends where GPT generation
+// is not available. For single compose sends, use the "Generate AI Email" button to
+// call /api/pipeline/generate-email and replace this with a GPT-4o-generated body.
 const DEFAULT_NOTE = `Hi {{first_name}},
 
-I recently watched your interview on {{interview_source}} about {{interview_topic}} — really enjoyed the part where {{specific_moment}}.
+I came across your work at {{company}} on {{interview_source}} and it caught my attention.
 
-I'm building a small tool called Korel that turns founder interviews and conversations into structured authority content (LinkedIn posts, X threads, newsletters, etc.).
+I'm building an AI agent called Korel that runs founder content automatically.
 
-Out of curiosity, I pasted a transcript from your interview into Korel and it generated a full content pack from it.
+When you connect an RSS feed it:
+- extracts your latest conversations or articles
+- generates LinkedIn posts, X threads, and newsletter ideas
+- repurposes them into multiple variations
+- lets you approve, schedule, or publish them directly
 
-Here's one example it produced:
+Out of curiosity, I ran one of your recent interviews through it and it generated several posts from it.
+
+Example it produced:
 
 {{linkedin_post_preview}}
 
-It also generated:
-• X thread
-• Newsletter outline
-• Strategic hooks from the interview
+If you're curious, you can try it here (no signup needed): https://www.usekorel.com
 
-You can try the demo here (no signup required): {{demo_link}}
+Just drop an RSS feed and it will generate content automatically.
 
-If you're creating content from interviews or podcasts, I'd love to know if this is useful or completely useless.
+Would love to know if something like this would actually be useful for founders like you.
 
-Either way, your interview was great.
-
-— {{your_name}}`;
+— Saqib`;
 
 function parseCSV(text) {
   const lines = text.trim().split("\n");
