@@ -12,12 +12,13 @@ const PLAN_CARDS = [
     key: "FREE" as const,
     label: "Free",
     price: null as null,
-    priceDisplay: "Free",
-    limit: "3 packs / month",
+    priceDisplay: "$0",
+    subtext: "Try Korel risk-free",
     features: [
-      "3 Authority Packs per month",
-      "All content formats",
-      "LinkedIn, X & Newsletter outputs",
+      "3 content packs per month",
+      "LinkedIn + X posts",
+      "Manual transcript input",
+      "Basic quality scoring",
     ],
     cta: "Downgrade",
     waitlistKey: null as WaitlistPlan | null,
@@ -27,55 +28,36 @@ const PLAN_CARDS = [
     label: "Starter",
     price: 49,
     priceDisplay: "$49",
-    limit: "15 uploads / month",
+    subtext: "For founders publishing weekly",
     features: [
-      "15 interview or update uploads per month",
-      "Structured Authority Map (SAM) generation",
-      "LinkedIn and X platform-ready assets",
-      "Messaging Strength evaluation",
-      "7-day content cadence preview",
-      "Email support",
+      "Unlimited content packs",
+      "RSS feed monitoring (1 feed)",
+      "Auto-publish to LinkedIn + X",
+      "Beehiiv newsletter integration",
+      "Content calendar",
+      "Mobile approve flow",
+      "Back catalog repurposing",
     ],
-    cta: "Join Starter Waitlist",
+    cta: "Get Started",
     waitlistKey: "STARTER" as WaitlistPlan,
+    featured: true,
   },
   {
     key: "PROFESSIONAL" as const,
     label: "Professional",
     price: 149,
     priceDisplay: "$149",
-    limit: "50 uploads / month",
+    subtext: "For founders who publish everywhere",
     features: [
-      "50 interview or update uploads per month",
-      "Unlimited platform-ready assets per upload",
-      "Full Strategic Authority Map (SAM)",
-      "Messaging Strength + Authority Consistency tracking",
-      "Weakness Radar insights",
-      "Newsletter format included",
-      "30-day authority calendar",
+      "Everything in Starter",
+      "5 RSS feeds monitored",
+      "Priority pack generation",
+      "Advanced analytics",
+      "Repurpose back catalog (unlimited)",
       "Priority support",
     ],
-    cta: "Join Professional Cohort",
+    cta: "Get Started",
     waitlistKey: "PROFESSIONAL" as WaitlistPlan,
-    featured: true,
-  },
-  {
-    key: "ENTERPRISE" as const,
-    label: "Enterprise",
-    price: null as null,
-    priceDisplay: "Custom",
-    limit: "Unlimited uploads",
-    features: [
-      "Unlimited uploads",
-      "Multi-user accounts",
-      "Cross-brand authority management",
-      "Advanced analytics & reporting",
-      "Custom integrations",
-      "Dedicated onboarding support",
-      "SLA & account manager",
-    ],
-    cta: "Contact Sales",
-    waitlistKey: "ENTERPRISE" as WaitlistPlan,
   },
 ];
 
@@ -104,7 +86,7 @@ export default function UpgradeClient({ planInfo }: { planInfo: UserPlanInfo }) 
         </div>
 
         {/* Plan cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {PLAN_CARDS.map((card) => {
             const isCurrent = plan === card.key;
             const isFeatured = !!card.featured;
@@ -140,7 +122,7 @@ export default function UpgradeClient({ planInfo }: { planInfo: UserPlanInfo }) 
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-[#64748B]">{card.limit}</p>
+                    <p className="text-xs text-[#64748B]">{card.subtext}</p>
                   </div>
 
                   {/* Features */}
