@@ -7,6 +7,7 @@ import { incrementPackUsage } from "@/lib/planGuard";
 import { getCurrentUsagePeriod } from "@/lib/usagePeriod";
 import { getUserPlan } from "@/lib/getUserPlan";
 import { notifyFounderPackReady, notifyFounderNeedsTranscript } from "./rss-notifications";
+import { transcribeAudioUrl } from "@/lib/transcription/whisper";
 import { Prisma } from "@prisma/client";
 
 const parser = new Parser({
@@ -205,6 +206,7 @@ async function checkFeed(feed: FeedWithUser): Promise<{
       youtubeUrl,
       publishedAt: latest.pubDate ? new Date(latest.pubDate) : null,
       status: "discovered",
+      transcriptStatus: null,
     },
   });
 
@@ -219,23 +221,70 @@ async function checkFeed(feed: FeedWithUser): Promise<{
 
   // Determine content to generate pack from
   let packInput: string;
-  if (feed.feedType === "youtube" && youtubeUrl) {
-    packInput = youtubeUrl; // generateAuthorityPack handles transcript fetch
-  } else {
-    // Podcast: use show notes / description
-    const content = latest.content ?? latest.contentSnippet ?? description;
-    packInput = content;
-  }
+  let transcriptSource: string | null = null;
+  let transcriptStatus: string | null = null;
 
-  // For YouTube feeds packInput is a URL — transcript is fetched inside generateAuthorityPack.
-  // Only apply the length gate for podcast/blog feeds where show notes are used directly.
-  if (feed.feedType !== "youtube" && packInput.trim().length < 200) {
+  if (feed.feedType === "youtube" && youtubeUrl) {
+    // YouTube: generateAuthorityPack fetches captions internally
+    packInput = youtubeUrl;
+  } else {
+    // Podcast / blog: resolve transcript via waterfall
+    //   1. Show notes / description (if substantial)
+    //   2. Whisper transcription of audio file
+    //   3. Fail → needs_transcript
+
     await prisma.rssEpisode.update({
       where: { id: episode.id },
-      data: { status: "needs_transcript" },
+      data: { transcriptStatus: "pending" },
     });
-    await notifyFounderNeedsTranscript(feed.user, episode, feed);
-    return { newEpisode: true, packGenerated: false };
+
+    const showNotes = (latest.content ?? latest.contentSnippet ?? description ?? "").trim();
+
+    if (showNotes.length >= 200) {
+      // Good enough show notes — use directly
+      packInput = showNotes;
+      transcriptSource = "description";
+      transcriptStatus = "fetched";
+    } else if (audioUrl) {
+      // Attempt Whisper transcription
+      console.log(`[rss] Attempting Whisper transcription for "${episode.title}" (${audioUrl})`);
+      try {
+        const whisperText = await transcribeAudioUrl(audioUrl);
+        if (whisperText.trim().length >= 200) {
+          packInput = whisperText;
+          transcriptSource = "whisper";
+          transcriptStatus = "fetched";
+          console.log(
+            `[rss] Whisper OK for "${episode.title}" — ${whisperText.length} chars`,
+          );
+          await prisma.rssEpisode.update({
+            where: { id: episode.id },
+            data: { transcript: whisperText, transcriptSource: "whisper", transcriptStatus: "fetched" },
+          });
+        } else {
+          // Whisper returned too little — unusable
+          transcriptStatus = "failed";
+          console.warn(`[rss] Whisper returned too little text for "${episode.title}", falling back`);
+          packInput = "";
+        }
+      } catch (err) {
+        transcriptStatus = "failed";
+        console.error(`[rss] Whisper failed for "${episode.title}":`, err);
+        packInput = "";
+      }
+    } else {
+      // No audio URL and show notes too short
+      packInput = "";
+    }
+
+    if (!packInput || packInput.trim().length < 200) {
+      await prisma.rssEpisode.update({
+        where: { id: episode.id },
+        data: { status: "needs_transcript", transcriptStatus: transcriptStatus ?? "failed" },
+      });
+      await notifyFounderNeedsTranscript(feed.user, episode, feed);
+      return { newEpisode: true, packGenerated: false };
+    }
   }
 
   // Check plan limits before generating
@@ -301,7 +350,12 @@ async function checkFeed(feed: FeedWithUser): Promise<{
 
     await prisma.rssEpisode.update({
       where: { id: episode.id },
-      data: { packId: createdPack.id, status: "pack_generated" },
+      data: {
+        packId: createdPack.id,
+        status: "pack_generated",
+        ...(transcriptSource ? { transcriptSource } : {}),
+        ...(transcriptStatus ? { transcriptStatus } : {}),
+      },
     });
 
     await prisma.rssFeed.update({

@@ -12,6 +12,7 @@ import { FAQ } from "./components/FAQ";
 import { FinalCTA } from "./components/final-cta";
 import { Footer } from "./components/footer";
 import { ScrollOnLoad } from "./components/ScrollOnLoad";
+import { FadeInSection } from "./components/FadeInSection";
 
 export const metadata: Metadata = {
   alternates: { canonical: "https://www.usekorel.com" },
@@ -61,14 +62,14 @@ export default function MarketingPage() {
       </Suspense>
       <Navbar />
       <Hero />
-      <SocialProofBar />
-      <HowKorelWorks />
-      <BeforeAfter />
-      <PlatformCards />
-      <WhyNotChatGPT />
-      <Pricing />
-      <FAQ />
-      <FinalCTA />
+      <FadeInSection><SocialProofBar /></FadeInSection>
+      <FadeInSection><HowKorelWorks /></FadeInSection>
+      <FadeInSection><BeforeAfter /></FadeInSection>
+      <FadeInSection><PlatformCards /></FadeInSection>
+      <FadeInSection><WhyNotChatGPT /></FadeInSection>
+      <FadeInSection><Pricing /></FadeInSection>
+      <FadeInSection><FAQ /></FadeInSection>
+      <FadeInSection><FinalCTA /></FadeInSection>
       <Footer />
     </div>
   );

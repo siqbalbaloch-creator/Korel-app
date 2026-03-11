@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
-import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+
+// Force dynamic rendering — required for NextAuth in Next.js App Router
+export const dynamic = "force-dynamic";
 
 const handler = NextAuth(authOptions);
 

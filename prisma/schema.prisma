@@ -415,19 +415,21 @@ model RssFeed {
 }
 
 model RssEpisode {
-  id          String    @id @default(cuid())
-  feedId      String
-  guid        String
-  title       String
-  description String?
-  audioUrl    String?
-  youtubeUrl  String?
-  publishedAt DateTime?
-  transcript  String?
-  packId      String?   @unique
-  status      String    // "discovered" | "needs_transcript" | "pack_generated" | "notified"
-  notifiedAt  DateTime?
-  createdAt   DateTime  @default(now())
+  id               String    @id @default(cuid())
+  feedId           String
+  guid             String
+  title            String
+  description      String?
+  audioUrl         String?
+  youtubeUrl       String?
+  publishedAt      DateTime?
+  transcript       String?
+  transcriptSource String?   // "description" | "whisper" | null
+  transcriptStatus String?   // "pending" | "fetched" | "failed" | null
+  packId           String?   @unique
+  status           String    // "discovered" | "needs_transcript" | "pack_generated" | "notified"
+  notifiedAt       DateTime?
+  createdAt        DateTime  @default(now())
 
   feed RssFeed        @relation(fields: [feedId], references: [id], onDelete: Cascade)
   pack AuthorityPack? @relation(fields: [packId], references: [id], onDelete: SetNull)
