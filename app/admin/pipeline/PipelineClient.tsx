@@ -572,6 +572,9 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
   const tabCount = (tab: Tab) => tabLeads[tab].length;
 
   async function buildLeadEmail(lead: Lead): Promise<{ subject: string; body: string }> {
+    // Take only the first word of firstName to avoid "Hi Benja Wiedemann," or "Hi and,"
+    const firstName = (lead.firstName || "").split(" ")[0] || "Founder";
+
     // Call GPT-4o to generate a personalised email body and subject.
     // Falls back to a static template if the API call fails.
     try {
@@ -579,7 +582,7 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          founderName: lead.firstName,
+          founderName: firstName,
           company: lead.company,
           source: lead.interviewSource,
           interviewSummary: [lead.interviewTopic, lead.specificMoment]
@@ -590,13 +593,12 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
       });
       if (res.ok) {
         const data = (await res.json()) as { subject: string; body: string };
-        // Append the full content pack as P.S. section
         const fullBody = buildEmailBody({
           note: data.body,
           linkedinPost: lead.linkedinPost,
           twitterPost: lead.twitterPost,
           newsletter: lead.newsletter,
-          firstName: lead.firstName,
+          firstName,
           company: lead.company,
           interviewSource: lead.interviewSource,
           interviewTopic: lead.interviewTopic,
@@ -612,13 +614,13 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
     }
 
     // Static fallback — used if GPT call fails
-    const subject = `I turned your ${lead.company} interview into content`;
+    const subject = `I turned your ${lead.interviewSource} interview into content`;
     const body = buildEmailBody({
-      note: `Hi {{first_name}},\n\nI came across your interview on {{interview_source}} about {{company}} — really interesting work.\n\nI built a small tool called Korel that turns founder interviews into structured authority content (LinkedIn posts, X threads, newsletters, etc.).\n\nOut of curiosity, I ran your interview through it and it generated a full content pack — I've included it below.\n\nWould love to know if any of it is useful (or completely off the mark).\n\nEither way, your interview was great.\n\n— Saqib`,
+      note: `Hi ${firstName},\n\nI recently watched your interview on ${lead.interviewSource} about ${lead.company} — really interesting work.\n\nI built a small tool called Korel that turns founder interviews and conversations into structured authority content (LinkedIn posts, X threads, newsletters, etc.).\n\nOut of curiosity, I pasted a transcript from your interview into Korel and it generated a full content pack from it.\n\n— Saqib`,
       linkedinPost: lead.linkedinPost,
       twitterPost: lead.twitterPost,
       newsletter: lead.newsletter,
-      firstName: lead.firstName,
+      firstName,
       company: lead.company,
       interviewSource: lead.interviewSource,
       interviewTopic: lead.interviewTopic,
