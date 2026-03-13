@@ -590,16 +590,31 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
       });
       if (res.ok) {
         const data = (await res.json()) as { subject: string; body: string };
-        return data;
+        // Append the full content pack as P.S. section
+        const fullBody = buildEmailBody({
+          note: data.body,
+          linkedinPost: lead.linkedinPost,
+          twitterPost: lead.twitterPost,
+          newsletter: lead.newsletter,
+          firstName: lead.firstName,
+          company: lead.company,
+          interviewSource: lead.interviewSource,
+          interviewTopic: lead.interviewTopic,
+          specificMoment: lead.specificMoment,
+          demoLink: "https://www.usekorel.com",
+          yourName: "Saqib",
+          include: { linkedin: true, twitter: true, newsletter: true },
+        });
+        return { subject: data.subject, body: fullBody };
       }
     } catch {
       // fall through to static fallback
     }
 
     // Static fallback — used if GPT call fails
-    const subject = `I ran your ${lead.company} interview through something — here's what it made`;
+    const subject = `I turned your ${lead.company} interview into content`;
     const body = buildEmailBody({
-      note: `Hi {{first_name}},\n\nI came across your work at {{company}} on {{interview_source}}.\n\nI'm building an AI agent called Korel that runs founder content automatically.\n\nWhen you connect an RSS feed it:\n- extracts your latest conversations or articles\n- generates LinkedIn posts, X threads, and newsletter ideas\n- repurposes them into multiple variations\n- lets you approve, schedule, or publish them directly\n\nOut of curiosity, I ran one of your recent interviews through it and it generated several posts from it.\n\nExample it produced:\n\n{{linkedin_post_preview}}\n\nIf you're curious, you can try it here (no signup needed): https://www.usekorel.com\n\nJust drop an RSS feed and it will generate content automatically.\n\nWould love to know if something like this would actually be useful for founders like you.\n\n— Saqib`,
+      note: `Hi {{first_name}},\n\nI came across your interview on {{interview_source}} about {{company}} — really interesting work.\n\nI built a small tool called Korel that turns founder interviews into structured authority content (LinkedIn posts, X threads, newsletters, etc.).\n\nOut of curiosity, I ran your interview through it and it generated a full content pack — I've included it below.\n\nWould love to know if any of it is useful (or completely off the mark).\n\nEither way, your interview was great.\n\n— Saqib`,
       linkedinPost: lead.linkedinPost,
       twitterPost: lead.twitterPost,
       newsletter: lead.newsletter,
@@ -608,9 +623,9 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
       interviewSource: lead.interviewSource,
       interviewTopic: lead.interviewTopic,
       specificMoment: lead.specificMoment,
-      demoLink: "https://usekorel.com",
+      demoLink: "https://www.usekorel.com",
       yourName: "Saqib",
-      include: { linkedin: false, twitter: false, newsletter: false },
+      include: { linkedin: true, twitter: true, newsletter: true },
     });
     return { subject, body };
   }

@@ -15,25 +15,23 @@ export interface OutreachEmailResult {
   body: string;
 }
 
-const SYSTEM_PROMPT = `You are writing cold outreach emails on behalf of Saqib, founder of Korel. Follow the exact structure provided — do not add any extra lines, do not change the wording, do not use fluff or corporate language.`;
+const SYSTEM_PROMPT = `You are writing short cold outreach emails on behalf of Saqib, founder of Korel. Write only the personal note — short, direct, human. No fluff, no corporate language, no extra sections.`;
 
 function buildUserPrompt({
   founderName,
   company,
   source,
   interviewSummary,
-  generatedPost,
 }: OutreachEmailParams): string {
-  return `Write a cold outreach email from Saqib to a bootstrapped founder. Follow this EXACT structure word-for-word — only fill in the bracketed parts.
+  return `Write the personal opening note of a cold outreach email from Saqib to a bootstrapped founder. Output ONLY this short note — nothing else.
 
 Founder details:
 - First Name: ${founderName}
 - Company: ${company}
 - Interview Source: ${source}
 - Interview summary / transcript excerpt: ${interviewSummary || "(not available — keep the reference general but mention the company name)"}
-- Generated LinkedIn post from their interview: ${generatedPost}
 
-EXACT EMAIL STRUCTURE (output only the body, no subject line):
+EXACT STRUCTURE (output only the body, no subject line):
 
 Hi ${founderName},
 
@@ -43,29 +41,12 @@ I built a small tool called Korel that turns founder interviews and conversation
 
 Out of curiosity, I pasted a transcript from your interview into Korel and it generated a full content pack from it.
 
-Here's one example it produced:
-
-[paste the generatedPost content verbatim here]
-
-It also generated:
-• X thread
-• Newsletter outline
-• Strategic hooks from the interview
-
-You can try the demo here (no signup required):
-https://www.usekorel.com
-
-If you're creating content from interviews or podcasts, I'd love to know if this is useful or completely useless.
-
-Either way, your interview was great.
-
 — Saqib
 
 RULES:
 - Fill in ONLY the bracketed placeholders using the founder details above.
-- Do NOT change any other wording.
-- Do NOT add extra sentences, bullets, or sections.
-- Paste the generatedPost content verbatim — do not summarise it.
+- Do NOT add extra sentences, bullets, or sections after "— Saqib".
+- Do NOT include any LinkedIn post, X thread, or newsletter content in this note.
 - If the interview summary is sparse, keep the reference in line 2 general (e.g. "about building ${company}") but still specific enough to feel personal.`;
 }
 
