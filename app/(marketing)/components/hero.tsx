@@ -185,7 +185,7 @@ function WidgetPreview() {
   );
 }
 
-const PLATFORMS = ["LinkedIn", "X", "Newsletter"];
+const PLATFORMS = ["LinkedIn Posts", "X Threads", "Newsletters"];
 
 export function Hero() {
   const [platformIndex, setPlatformIndex] = useState(0);
@@ -214,6 +214,17 @@ export function Hero() {
         overflow: "hidden",
       }}
     >
+      <style>{`
+        @keyframes korelHeroCta {
+          0%, 100% { box-shadow: 0 6px 20px rgba(109, 94, 243, 0.26); }
+          50% { box-shadow: 0 8px 32px rgba(109, 94, 243, 0.50), 0 0 0 5px rgba(109, 94, 243, 0.09); }
+        }
+        .korel-hero-cta {
+          box-shadow: 0 6px 20px rgba(109, 94, 243, 0.26);
+          animation: korelHeroCta 3s ease-in-out 2s infinite;
+        }
+      `}</style>
+
       {/* Radial glow */}
       <div
         style={{
@@ -255,8 +266,7 @@ export function Hero() {
               margin: "0 0 20px",
             }}
           >
-            Turn your podcast into
-            <br />
+            Every interview becomes
             <span
               style={{
                 display: "block",
@@ -265,13 +275,14 @@ export function Hero() {
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
                 opacity: visible ? 1 : 0,
-                transform: visible ? "translateY(0)" : "translateY(-10px)",
+                transform: visible ? "translateY(0)" : "translateY(-8px)",
                 transition: "opacity 0.35s ease, transform 0.35s ease",
+                minHeight: "1.15em",
               }}
             >
               {PLATFORMS[platformIndex]}
             </span>
-            content, automatically.
+            automatically.
           </h1>
 
           <p
@@ -290,11 +301,12 @@ export function Hero() {
           <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "36px" }}>
             <a
               href="/new"
+              className="korel-hero-cta"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "8px",
-                background: "linear-gradient(135deg, #6D5EF3 0%, #8B7CFF 100%)",
+                background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #9333EA 100%)",
                 color: "#ffffff",
                 fontWeight: 600,
                 fontSize: "16px",
@@ -302,16 +314,17 @@ export function Hero() {
                 padding: "0 28px",
                 borderRadius: "12px",
                 textDecoration: "none",
-                boxShadow: "0 6px 20px rgba(109, 94, 243, 0.25)",
-                transition: "all 0.2s ease",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 10px 28px rgba(109, 94, 243, 0.35)";
+                e.currentTarget.style.animationPlayState = "paused";
+                e.currentTarget.style.boxShadow = "0 12px 32px rgba(109, 94, 243, 0.48)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 6px 20px rgba(109, 94, 243, 0.25)";
+                e.currentTarget.style.animationPlayState = "";
+                e.currentTarget.style.boxShadow = "";
               }}
             >
               Start Free →

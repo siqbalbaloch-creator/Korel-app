@@ -63,9 +63,19 @@ export function Navbar() {
         borderBottom: "1px solid rgba(226, 232, 240, 0.5)",
       }}
     >
+      <style>{`
+        @keyframes korelNavCta {
+          0%, 100% { box-shadow: 0 4px 14px rgba(109, 94, 243, 0.28); }
+          50% { box-shadow: 0 6px 22px rgba(109, 94, 243, 0.50), 0 0 0 4px rgba(109, 94, 243, 0.10); }
+        }
+        .korel-nav-cta {
+          box-shadow: 0 4px 14px rgba(109, 94, 243, 0.28);
+          animation: korelNavCta 3s ease-in-out 2.5s infinite;
+        }
+      `}</style>
       <div
-        className="mx-auto flex items-center justify-between"
-        style={{ maxWidth: "1320px", height: "68px" }}
+        className="mx-auto"
+        style={{ maxWidth: "1320px", height: "68px", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }}
       >
         {/* Logo */}
         <Link href="/" className="flex items-center" style={{ gap: "10px", textDecoration: "none" }}>
@@ -103,8 +113,90 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Nav links + actions */}
-        <div className="flex items-center" style={{ gap: "24px" }}>
+        {/* Desktop centered nav */}
+        <nav className="hidden lg:flex items-center" style={{ gap: "32px" }}>
+          <button
+            onClick={() => handleSectionLink("why-korel")}
+            style={{
+              color: "#64748B",
+              fontSize: "15px",
+              fontWeight: 500,
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              transition: "color 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
+          >
+            Why Korel
+          </button>
+          <button
+            onClick={() => handleSectionLink("pricing")}
+            style={{
+              color: "#64748B",
+              fontSize: "15px",
+              fontWeight: 500,
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              transition: "color 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
+          >
+            Pricing
+          </button>
+          <Link
+            href="/case-studies"
+            style={{
+              color: "#64748B",
+              fontSize: "15px",
+              fontWeight: 500,
+              textDecoration: "none",
+              transition: "color 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
+          >
+            Case Studies
+          </Link>
+          <a
+            href="/blog"
+            style={{
+              color: "#64748B",
+              fontSize: "15px",
+              fontWeight: 500,
+              textDecoration: "none",
+              transition: "color 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
+          >
+            Insights
+          </a>
+          {!isAuthed && (
+            <a
+              href="/signin"
+              style={{
+                color: "#64748B",
+                fontSize: "15px",
+                fontWeight: 500,
+                textDecoration: "none",
+                transition: "color 0.2s ease",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
+            >
+              Sign In
+            </a>
+          )}
+        </nav>
+
+        {/* Right actions */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px" }}>
           {/* Hamburger button — mobile only */}
           <button
             className="flex lg:hidden items-center justify-center"
@@ -120,89 +212,6 @@ export function Navbar() {
           >
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
-
-          {/* Desktop nav links */}
-          <nav className="hidden lg:flex items-center" style={{ gap: "32px" }}>
-            <button
-              onClick={() => handleSectionLink("why-korel")}
-              style={{
-                color: "#64748B",
-                fontSize: "15px",
-                fontWeight: 500,
-                background: "none",
-                border: "none",
-                padding: 0,
-                cursor: "pointer",
-                transition: "color 0.2s ease",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
-            >
-              Why Korel
-            </button>
-            <button
-              onClick={() => handleSectionLink("pricing")}
-              style={{
-                color: "#64748B",
-                fontSize: "15px",
-                fontWeight: 500,
-                background: "none",
-                border: "none",
-                padding: 0,
-                cursor: "pointer",
-                transition: "color 0.2s ease",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
-            >
-              Pricing
-            </button>
-            <Link
-              href="/case-studies"
-              style={{
-                color: "#64748B",
-                fontSize: "15px",
-                fontWeight: 500,
-                textDecoration: "none",
-                transition: "color 0.2s ease",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
-            >
-              Case Studies
-            </Link>
-            <a
-              href="/blog"
-              style={{
-                color: "#64748B",
-                fontSize: "15px",
-                fontWeight: 500,
-                textDecoration: "none",
-                transition: "color 0.2s ease",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
-            >
-              Insights
-            </a>
-
-            {!isAuthed && (
-              <a
-                href="/signin"
-                style={{
-                  color: "#64748B",
-                  fontSize: "15px",
-                  fontWeight: 500,
-                  textDecoration: "none",
-                  transition: "color 0.2s ease",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#0F172A")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
-              >
-                Sign In
-              </a>
-            )}
-          </nav>
 
           {isAuthed ? (
             /* Authenticated: Create Content + Avatar dropdown */
@@ -380,13 +389,14 @@ export function Navbar() {
           ) : (
             /* Unauthenticated: Start Free */
             <button
-              className="hidden lg:block"
+              className="hidden lg:flex korel-nav-cta"
               onClick={() => {
                 void logMarketingEvent("CTA_CLICK", { cta: "navbar_start_free" });
                 router.push("/signup");
               }}
               style={{
-                background: "#3B82F6",
+                alignItems: "center",
+                background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
                 color: "#ffffff",
                 fontWeight: 600,
                 fontSize: "14px",
@@ -395,18 +405,17 @@ export function Navbar() {
                 borderRadius: "10px",
                 border: "none",
                 cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.12)",
-                transition: "all 0.2s ease",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#2563EB";
                 e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.18)";
+                e.currentTarget.style.animationPlayState = "paused";
+                e.currentTarget.style.boxShadow = "0 8px 24px rgba(109, 94, 243, 0.45)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#3B82F6";
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.12)";
+                e.currentTarget.style.animationPlayState = "";
+                e.currentTarget.style.boxShadow = "";
               }}
             >
               Start Free
