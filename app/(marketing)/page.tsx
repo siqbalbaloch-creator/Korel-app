@@ -5,7 +5,6 @@ import { Hero } from "./components/hero";
 import { SocialProofBar } from "./components/social-proof-bar";
 import { HowKorelWorks } from "./components/how-korel-works";
 import { BeforeAfter } from "./components/before-after";
-import { PlatformCards } from "./components/platform-cards";
 import { WhyNotChatGPT } from "./components/WhyNotChatGPT";
 import { Pricing } from "./components/pricing";
 import { FAQ } from "./components/FAQ";
@@ -65,7 +64,6 @@ export default function MarketingPage() {
       <FadeInSection><SocialProofBar /></FadeInSection>
       <FadeInSection><HowKorelWorks /></FadeInSection>
       <FadeInSection><BeforeAfter /></FadeInSection>
-      <FadeInSection><PlatformCards /></FadeInSection>
       <FadeInSection><WhyNotChatGPT /></FadeInSection>
       <FadeInSection><Pricing /></FadeInSection>
       <FadeInSection><FAQ /></FadeInSection>

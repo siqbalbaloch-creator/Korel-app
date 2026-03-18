@@ -54,7 +54,7 @@ export function FAQ() {
       style={{
         paddingTop: "96px",
         paddingBottom: "96px",
-        backgroundColor: "#ffffff",
+        background: "linear-gradient(180deg, #ECEEFF 0%, #F0EFFF 60%, #EDEEFF 100%)",
       }}
     >
       <div className="mx-auto" style={{ maxWidth: "760px" }}>

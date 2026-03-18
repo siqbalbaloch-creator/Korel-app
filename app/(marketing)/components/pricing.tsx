@@ -70,7 +70,7 @@ const PLANS: Plan[] = [
 
 export function Pricing() {
   return (
-    <section id="pricing" className="px-6" style={{ paddingTop: "112px", paddingBottom: "112px", backgroundColor: "#ffffff" }}>
+    <section id="pricing" className="px-6" style={{ paddingTop: "112px", paddingBottom: "112px", backgroundColor: "#F6F7FB" }}>
       <div className="mx-auto" style={{ maxWidth: "1100px" }}>
         <div className="text-center" style={{ marginBottom: "56px" }}>
           <span style={{ display: "inline-block", fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#6D5EF3", marginBottom: "16px" }}>

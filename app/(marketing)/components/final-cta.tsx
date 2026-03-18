@@ -6,7 +6,7 @@ import { logMarketingEvent } from "@/lib/marketingEvents";
 export function FinalCTA() {
   const router = useRouter();
   return (
-    <section className="px-6 relative overflow-hidden" style={{ paddingTop: "152px", paddingBottom: "152px", background: "radial-gradient(ellipse 80% 50% at 50% 50%, rgba(109,94,243,0.06) 0%, transparent 60%), #ffffff" }}>
+    <section className="px-6 relative overflow-hidden" style={{ paddingTop: "152px", paddingBottom: "152px", background: "radial-gradient(ellipse 80% 50% at 50% 50%, rgba(109,94,243,0.08) 0%, transparent 60%), #F6F7FB" }}>
       <div className="relative mx-auto text-center" style={{ maxWidth: "720px", zIndex: 1 }}>
         <h2 style={{ color: "#1F2937", fontWeight: 700, fontSize: "48px", lineHeight: "1.2", letterSpacing: "-0.02em", marginBottom: "16px" }}>
           Your next interview{" "}
