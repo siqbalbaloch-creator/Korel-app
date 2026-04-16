@@ -42,7 +42,7 @@ export default function TermsPage() {
 
         <Section id="acceptance" title="1. Acceptance of Terms">
           <p>By accessing or using Korel ("the Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not use the Service. These Terms form a legally binding agreement between you and Korel, operated by Saqib Iqbal ("we," "us," or "our").</p>
-          <p style={{ marginTop: "12px" }}>Korel is operated by Saqib Iqbal, an individual operator based in Abu Dhabi, United Arab Emirates. The legal operator name is Saqib Iqbal trading as Korel.</p>
+          <p style={{ marginTop: "12px" }}>Korel is operated by Saqib Iqbal, an individual operator based in Abu Dhabi, United Arab Emirates. The legal operator name is Korel.</p>
           <p style={{ marginTop: "12px" }}>We may update these Terms at any time. Continued use of the Service after changes are posted constitutes your acceptance of the updated Terms. We will notify you of material changes via email or an in-app notice.</p>
         </Section>
 

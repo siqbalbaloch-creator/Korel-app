@@ -41,8 +41,8 @@ export default function RefundPage() {
       <div style={{ maxWidth: "760px", margin: "0 auto", padding: "56px 24px 80px" }}>
 
         <Section id="overview" title="1. Overview">
-          <p>Korel is a subscription-based SaaS product. Payments are processed by <strong>Paddle</strong>, who acts as Merchant of Record. This policy describes when refunds are available and how to request one.</p>
-          <p style={{ marginTop: "12px" }}>We want you to be satisfied with Korel. If you have a problem with your subscription or a charge, please contact us first and we will do our best to make it right.</p>
+          <p>Korel is a subscription-based SaaS product. Payments are processed by <strong>Paddle</strong>, who acts as Merchant of Record.</p>
+          <p style={{ marginTop: "12px" }}>Cancel within 14 days of purchase for a full refund, no questions asked.</p>
         </Section>
 
         <Section id="free-trial" title="2. Free Tier">
@@ -50,57 +50,33 @@ export default function RefundPage() {
         </Section>
 
         <Section id="paid-plans" title="3. Paid Subscriptions">
-          <p>Paid subscriptions (Pro, Enterprise) are billed on a monthly or annual cycle. The following refund terms apply:</p>
-
-          <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ marginTop: "16px" }}>
             <div style={{ padding: "20px", backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "10px" }}>
-              <p style={{ fontWeight: 700, color: "#166534", margin: "0 0 6px" }}>7-Day Money-Back Guarantee</p>
-              <p style={{ margin: 0, color: "#166534" }}>If you subscribed to a paid plan and are not satisfied, you may request a full refund within <strong>7 days</strong> of your initial subscription payment. No questions asked.</p>
-            </div>
-
-            <div style={{ padding: "20px", backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "10px" }}>
-              <p style={{ fontWeight: 700, color: "#0F172A", margin: "0 0 6px" }}>After 7 Days</p>
-              <p style={{ margin: 0 }}>After the 7-day window, subscription charges are non-refundable. You may cancel at any time and you will retain access to your paid plan until the end of the current billing period. No partial-month refunds are issued.</p>
-            </div>
-
-            <div style={{ padding: "20px", backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "10px" }}>
-              <p style={{ fontWeight: 700, color: "#0F172A", margin: "0 0 6px" }}>Annual Plans</p>
-              <p style={{ margin: 0 }}>Annual subscriptions may be refunded in full within 7 days of payment. After the 7-day window, we will evaluate refund requests for annual plans on a case-by-case basis and may offer a pro-rated credit at our discretion.</p>
+              <p style={{ fontWeight: 700, color: "#166534", margin: "0 0 6px" }}>14-Day Money-Back Guarantee</p>
+              <p style={{ margin: 0, color: "#166534" }}>Cancel within <strong>14 days</strong> of purchase for a full refund, no questions asked.</p>
             </div>
           </div>
         </Section>
 
         <Section id="renewal" title="4. Renewal Charges">
-          <p>Subscriptions renew automatically at the end of each billing period. If you did not intend to renew, you may request a refund for the most recent renewal charge within <strong>72 hours</strong> of the charge date, provided you have not used the service during that renewal period.</p>
-          <p style={{ marginTop: "12px" }}>To prevent future renewals, cancel your subscription from your Billing settings before the renewal date.</p>
+          <p>Subscriptions renew automatically at the end of each billing period. You may cancel your subscription at any time from your Billing settings to prevent future renewals.</p>
         </Section>
 
-        <Section id="exceptions" title="5. Exceptions and Discretionary Refunds">
-          <p>We may issue refunds outside the above terms in the following circumstances:</p>
-          <ul style={{ marginTop: "12px", paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "8px" }}>
-            <li>Extended service outages (more than 24 hours of cumulative downtime in a billing period) attributable to Korel infrastructure failures</li>
-            <li>Duplicate charges caused by a billing error</li>
-            <li>Charges made after a verified cancellation request that was not processed correctly</li>
-          </ul>
-          <p style={{ marginTop: "12px" }}>All discretionary refund decisions are final and made at Korel's sole discretion.</p>
-        </Section>
-
-        <Section id="how-to-request" title="6. How to Request a Refund">
+        <Section id="how-to-request" title="5. How to Request a Refund">
           <p>To request a refund:</p>
           <ol style={{ marginTop: "12px", paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "8px" }}>
             <li>Email <a href="mailto:siqbalbaloch@gmail.com" style={{ color: "#6D5EF3" }}>siqbalbaloch@gmail.com</a> with the subject line <strong>"Refund Request"</strong></li>
             <li>Include the email address on your Korel account and the approximate date of the charge</li>
-            <li>Briefly describe the reason for your request (optional but helpful)</li>
           </ol>
-          <p style={{ marginTop: "12px" }}>We will respond within 3 business days. If your refund is approved, it will be processed via Paddle and typically takes 5–10 business days to appear on your statement, depending on your payment method and bank.</p>
+          <p style={{ marginTop: "12px" }}>Refunds are processed via Paddle and typically take 5–10 business days to appear on your statement, depending on your payment method and bank.</p>
         </Section>
 
-        <Section id="cancellation" title="7. Cancellation">
-          <p>You can cancel your subscription at any time from your <Link href="/billing" style={{ color: "#6D5EF3" }}>Billing</Link> page by clicking "Manage Subscription." Cancellation stops future charges; it does not immediately remove your access or generate a refund for the current period.</p>
+        <Section id="cancellation" title="6. Cancellation">
+          <p>You can cancel your subscription at any time from your <Link href="/billing" style={{ color: "#6D5EF3" }}>Billing</Link> page by clicking "Manage Subscription." Cancellation stops future charges and your access continues until the end of the current billing period.</p>
           <p style={{ marginTop: "12px" }}>To delete your account entirely and have your data removed, contact us at <a href="mailto:siqbalbaloch@gmail.com" style={{ color: "#6D5EF3" }}>siqbalbaloch@gmail.com</a>.</p>
         </Section>
 
-        <Section id="contact" title="8. Contact">
+        <Section id="contact" title="7. Contact">
           <p>For any billing or refund questions:</p>
           <div style={{ marginTop: "12px", padding: "16px 20px", backgroundColor: "#F1F5F9", borderRadius: "8px" }}>
             <p style={{ margin: 0 }}><strong>Korel</strong> (operated by Saqib Iqbal)</p>
