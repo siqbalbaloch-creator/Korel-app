@@ -11,7 +11,8 @@ datasource db {
 
 enum Plan {
   FREE
-  PRO
+  STARTER
+  PROFESSIONAL
   ENTERPRISE
 }
 
@@ -84,15 +85,15 @@ model AuthorityProfile {
 }
 
 model Subscription {
-  id               String    @id @default(cuid())
-  userId           String    @unique
-  stripeCustomerId String?   @unique
-  stripeSubId      String?   @unique
-  plan             Plan      @default(FREE)
-  status           String    @default("none")
-  currentPeriodEnd DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  paddleCustomerId     String?   @unique
+  paddleSubscriptionId String?   @unique
+  plan                 Plan      @default(FREE)
+  status               String    @default("none")
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

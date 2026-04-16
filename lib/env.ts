@@ -50,9 +50,13 @@ export const env = {
   resendApiKey: optionalEnvConfigured("RESEND_API_KEY", "re_your_api_key_here"),
   supportOwnerEmail: optionalEnv("SUPPORT_OWNER_EMAIL"),
 
-  // Stripe (optional until billing is activated)
-  stripeSecretKey: optionalEnvConfigured("STRIPE_SECRET_KEY", "sk_test_your_secret_key_here"),
-  stripeWebhookSecret: optionalEnvConfigured("STRIPE_WEBHOOK_SECRET", "whsec_your_webhook_secret_here"),
+  // Paddle
+  paddleApiKey: optionalEnvConfigured("PADDLE_API_KEY"),
+  paddleWebhookSecret: optionalEnvConfigured("PADDLE_WEBHOOK_SECRET"),
+  paddleClientToken: optionalEnvConfigured("NEXT_PUBLIC_PADDLE_CLIENT_TOKEN"),
+  paddleStarterPriceId: optionalEnvConfigured("NEXT_PUBLIC_PADDLE_STARTER_PRICE_ID"),
+  paddleProfessionalPriceId: optionalEnvConfigured("NEXT_PUBLIC_PADDLE_PROFESSIONAL_PRICE_ID"),
+  paddleEnv: (process.env.PADDLE_ENV ?? "sandbox") as "production" | "sandbox",
 
   // Postgres cutover support (optional)
   sqliteDatabaseUrl: optionalEnv("SQLITE_DATABASE_URL"),

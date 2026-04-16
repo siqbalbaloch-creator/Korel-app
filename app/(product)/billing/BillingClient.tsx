@@ -3,15 +3,26 @@
 import { useState } from "react";
 import { Check, CreditCard, ExternalLink } from "lucide-react";
 import type { UserPlanInfo } from "@/lib/getUserPlan";
-import { PricingWaitlistModal } from "@/components/pricing/PricingWaitlistModal";
+import type { PlanTier } from "@/lib/plans";
 
-type WaitlistPlan = "STARTER" | "PROFESSIONAL" | "ENTERPRISE";
+type PaidPlanKey = "STARTER" | "PROFESSIONAL";
 
-const PLAN_CARDS = [
+type PlanCard = {
+  key: PlanTier;
+  label: string;
+  priceDisplay: string;
+  subtext: string;
+  features: string[];
+  cta: string;
+  priceEnvValue?: string;
+  featured?: boolean;
+  purchasable: boolean;
+};
+
+const PLAN_CARDS: PlanCard[] = [
   {
-    key: "FREE" as const,
+    key: "FREE",
     label: "Free",
-    price: null as null,
     priceDisplay: "$0",
     subtext: "Try Korel risk-free",
     features: [
@@ -21,64 +32,109 @@ const PLAN_CARDS = [
       "Basic quality scoring",
     ],
     cta: "Your current plan",
-    waitlistKey: null as WaitlistPlan | null,
+    purchasable: false,
   },
   {
-    key: "STARTER" as const,
+    key: "STARTER",
     label: "Starter",
-    price: 49,
     priceDisplay: "$49",
     subtext: "For founders publishing weekly",
     features: [
-      "Unlimited content packs",
+      "15 content packs per month",
       "RSS feed monitoring (1 feed)",
       "Auto-publish to LinkedIn + X",
       "Beehiiv newsletter integration",
       "Content calendar",
-      "Mobile approve flow",
       "Back catalog repurposing",
     ],
-    cta: "Get Started",
-    waitlistKey: "STARTER" as WaitlistPlan,
+    cta: "Upgrade to Starter",
+    priceEnvValue: process.env.NEXT_PUBLIC_PADDLE_STARTER_PRICE_ID,
     featured: true,
+    purchasable: true,
   },
   {
-    key: "PROFESSIONAL" as const,
+    key: "PROFESSIONAL",
     label: "Professional",
-    price: 149,
     priceDisplay: "$149",
     subtext: "For founders who publish everywhere",
     features: [
-      "Everything in Starter",
+      "50 content packs per month",
       "5 RSS feeds monitored",
       "Priority pack generation",
-      "Advanced analytics",
+      "Unlimited regenerations",
       "Repurpose back catalog (unlimited)",
       "Priority support",
     ],
-    cta: "Get Started",
-    waitlistKey: "PROFESSIONAL" as WaitlistPlan,
+    cta: "Upgrade to Professional",
+    priceEnvValue: process.env.NEXT_PUBLIC_PADDLE_PROFESSIONAL_PRICE_ID,
+    purchasable: true,
   },
 ];
 
-export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) {
+const PLAN_LABELS: Record<PlanTier, string> = {
+  FREE: "Free",
+  STARTER: "Starter",
+  PROFESSIONAL: "Professional",
+  ENTERPRISE: "Enterprise",
+};
+
+export default function BillingClient({
+  planInfo,
+  hasPaddleCustomer,
+}: {
+  planInfo: UserPlanInfo;
+  hasPaddleCustomer: boolean;
+}) {
   const [portalLoading, setPortalLoading] = useState(false);
-  const [modalPlan, setModalPlan] = useState<WaitlistPlan | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState<PaidPlanKey | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleManage = async () => {
     setPortalLoading(true);
+    setError(null);
     try {
-      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const res = await fetch("/api/billing/portal", { method: "POST" });
       const data = (await res.json()) as { url?: string; error?: string };
       if (data.url) {
         window.location.assign(data.url);
       } else {
-        alert(data.error ?? "Could not open billing portal.");
+        setError(data.error ?? "Could not open billing portal.");
         setPortalLoading(false);
       }
     } catch {
-      alert("Something went wrong.");
+      setError("Something went wrong opening the billing portal.");
       setPortalLoading(false);
+    }
+  };
+
+  const handleUpgrade = async (card: PlanCard) => {
+    if (!card.priceEnvValue) {
+      setError(
+        `Price ID for ${card.label} is not configured. Set NEXT_PUBLIC_PADDLE_${card.key}_PRICE_ID.`,
+      );
+      return;
+    }
+    setCheckoutLoading(card.key as PaidPlanKey);
+    setError(null);
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceId: card.priceEnvValue }),
+      });
+      const data = (await res.json()) as {
+        checkoutUrl?: string;
+        error?: string;
+      };
+      if (data.checkoutUrl) {
+        window.location.assign(data.checkoutUrl);
+      } else {
+        setError(data.error ?? "Could not start checkout.");
+        setCheckoutLoading(null);
+      }
+    } catch {
+      setError("Something went wrong starting checkout.");
+      setCheckoutLoading(null);
     }
   };
 
@@ -88,8 +144,7 @@ export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) 
     ? Math.min(100, Math.round((used / effectiveLimit) * 100))
     : 0;
 
-  const planLabel =
-    plan === "FREE" ? "Free" : plan === "PRO" ? "Pro" : "Enterprise";
+  const planLabel = PLAN_LABELS[plan] ?? "Free";
 
   return (
     <div className="flex-1 p-8 max-w-5xl mx-auto w-full">
@@ -98,6 +153,12 @@ export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) 
         <h1 className="text-2xl font-bold text-[#0F172A]">Billing</h1>
         <p className="mt-1 text-sm text-[#64748B]">Manage your plan and usage.</p>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error}
+        </div>
+      )}
 
       {/* Current usage */}
       <div className="mb-8 rounded-xl border border-[#E2E8F0] bg-white p-6">
@@ -108,7 +169,7 @@ export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) 
             </p>
             <p className="text-xl font-bold text-[#0F172A] mt-0.5">{planLabel}</p>
           </div>
-          {plan !== "FREE" && (
+          {hasPaddleCustomer && (
             <button
               onClick={handleManage}
               disabled={portalLoading}
@@ -150,6 +211,7 @@ export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) 
         {PLAN_CARDS.map((card) => {
           const isCurrent = plan === card.key;
           const isFeatured = !!card.featured;
+          const isLoading = checkoutLoading === card.key;
 
           return (
             <div
@@ -162,7 +224,6 @@ export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) 
                   : "border border-[#E2E8F0]"
               } bg-white`}
             >
-              {/* Featured bar */}
               {isFeatured && (
                 <div className="bg-gradient-to-r from-[#6D5EF3] to-[#8B7CFF] px-4 py-2 text-center">
                   <span className="text-[11px] font-bold uppercase tracking-widest text-white">
@@ -172,20 +233,18 @@ export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) 
               )}
 
               <div className="flex flex-col flex-1 p-5 gap-4">
-                {/* Name + current badge */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-sm font-bold text-[#0F172A]">{card.label}</p>
                     {isCurrent && (
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-[#4F46E5] bg-[#EEF2FF] px-2 py-0.5 rounded-full">
-                        Current
+                        Current Plan
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-[#64748B]">{card.subtext}</p>
                 </div>
 
-                {/* Features */}
                 <ul className="space-y-2 flex-1">
                   {card.features.map((f) => (
                     <li key={f} className="flex items-start gap-2 text-xs text-[#475569]">
@@ -199,32 +258,39 @@ export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) 
                   ))}
                 </ul>
 
-                {/* Price + CTA */}
                 <div>
                   <p className="text-2xl font-bold text-[#0F172A] mb-3">
                     {card.priceDisplay}
-                    {card.price !== null && (
+                    {card.key !== "FREE" && (
                       <span className="text-sm font-normal text-[#94A3B8]"> / month</span>
                     )}
                   </p>
 
-                  {card.key === "FREE" ? (
+                  {!card.purchasable ? (
                     <button
                       disabled
                       className="w-full rounded-lg py-2.5 text-sm font-semibold bg-[#F1F5F9] text-[#94A3B8] cursor-default"
                     >
                       {isCurrent ? "Your current plan" : "Downgrade"}
                     </button>
+                  ) : isCurrent ? (
+                    <button
+                      disabled
+                      className="w-full rounded-lg py-2.5 text-sm font-semibold bg-[#F1F5F9] text-[#94A3B8] cursor-default"
+                    >
+                      Current plan
+                    </button>
                   ) : (
                     <button
-                      onClick={() => card.waitlistKey && setModalPlan(card.waitlistKey)}
-                      className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-colors ${
+                      onClick={() => handleUpgrade(card)}
+                      disabled={isLoading || checkoutLoading !== null}
+                      className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 ${
                         isFeatured
                           ? "bg-gradient-to-r from-[#6D5EF3] to-[#8B7CFF] text-white hover:opacity-90"
                           : "bg-[#4F46E5] text-white hover:bg-[#4338CA]"
                       }`}
                     >
-                      {card.cta}
+                      {isLoading ? "Opening checkout..." : card.cta}
                     </button>
                   )}
                 </div>
@@ -235,24 +301,12 @@ export default function BillingClient({ planInfo }: { planInfo: UserPlanInfo }) 
       </div>
 
       <p className="mt-6 text-center text-xs text-[#94A3B8]">
-        Paid plans are opening in phases. Join the waitlist to get notified.
-      </p>
-
-      <p className="mt-3 text-center text-xs text-[#94A3B8]">
         All paid plans include a{" "}
         <a href="/refund" className="underline hover:text-[#64748B] transition-colors">
           7-day money-back guarantee
         </a>
         . Payments processed by Paddle.
       </p>
-
-      {modalPlan && (
-        <PricingWaitlistModal
-          plan={modalPlan}
-          source="PRICING"
-          onClose={() => setModalPlan(null)}
-        />
-      )}
     </div>
   );
 }

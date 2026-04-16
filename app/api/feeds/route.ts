@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { validateFeed, resolveYouTubeFeedUrl } from "@/lib/rss/rss-monitor.service";
+import { getPlanSnapshot } from "@/lib/planGuard";
 
 // GET /api/feeds — list user's feeds with episode counts
 export async function GET() {
@@ -37,11 +38,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "feedUrl is required" }, { status: 400 });
   }
 
-  // Limit to 10 feeds per user
-  const count = await prisma.rssFeed.count({ where: { userId: session.user.id } });
-  if (count >= 10) {
+  // Plan-gated feed limit (DB-backed subscription, not session)
+  const [snapshot, count] = await Promise.all([
+    getPlanSnapshot(session.user.id, session.user.role),
+    prisma.rssFeed.count({ where: { userId: session.user.id } }),
+  ]);
+  const maxFeeds = snapshot.config.maxRssFeeds;
+  if (Number.isFinite(maxFeeds) && count >= maxFeeds) {
     return NextResponse.json(
-      { error: "Maximum 10 feeds per account." },
+      {
+        error:
+          maxFeeds === 0
+            ? `RSS monitoring isn't included in the ${snapshot.plan} plan. Upgrade to add feeds.`
+            : `You've reached your ${snapshot.plan} plan limit of ${maxFeeds} feed${maxFeeds === 1 ? "" : "s"}. Upgrade to add more.`,
+        upgradeHint: true,
+        plan: snapshot.plan,
+        limit: maxFeeds,
+        used: count,
+      },
       { status: 422 },
     );
   }
