@@ -1,11 +1,27 @@
+"use client";
+
+import type { CheckoutSettings } from "@paddle/paddle-js";
+import { getPaddleClient } from "./paddleClient";
+
+const CHECKOUT_SETTINGS: CheckoutSettings = {
+  displayMode: "overlay",
+  theme: "light",
+  locale: "en",
+  successUrl: "https://www.usekorel.com/billing?success=1",
+  frameTarget: "self",
+  frameInitialHeight: 450,
+  frameStyle: "width: 100%; background-color: transparent; border: none;",
+};
+
 /**
- * Shared Paddle checkout helper. Used by every upgrade button
- * (public pricing, authenticated /billing, authenticated /upgrade)
- * so the flow is consistent.
+ * Opens a Paddle overlay checkout for the given priceId.
+ * Server creates the transaction, client loads Paddle.js and opens the overlay —
+ * this bypasses Paddle's global default payment link entirely, so the shared
+ * Paddle account's default (Prompify) is never touched.
  *
- * Throws on any failure so callers can show an error state.
+ * Throws on any server-side or SDK init failure.
  */
-export async function startCheckout(priceId: string): Promise<never> {
+export async function startCheckout(priceId: string): Promise<void> {
   const res = await fetch("/api/billing/checkout", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -13,22 +29,26 @@ export async function startCheckout(priceId: string): Promise<never> {
   });
 
   const data = (await res.json().catch(() => ({}))) as {
-    checkoutUrl?: string;
+    transactionId?: string;
+    customerEmail?: string | null;
     error?: string;
   };
 
-  if (!data.checkoutUrl) {
+  if (!data.transactionId) {
     throw new Error(data.error ?? "Could not start checkout.");
   }
 
-  window.location.assign(data.checkoutUrl);
-  // Reachable only if the browser cancels the navigation.
-  return new Promise<never>(() => {});
+  const paddle = await getPaddleClient();
+  paddle.Checkout.open({
+    transactionId: data.transactionId,
+    settings: CHECKOUT_SETTINGS,
+    ...(data.customerEmail ? { customer: { email: data.customerEmail } } : {}),
+  });
 }
 
 /**
- * Public-pricing entrypoint: unauthenticated users are bounced to /signin
- * with a callbackUrl pointing at /billing, where they can finish the upgrade.
+ * Public-pricing entrypoint: unauthenticated users are bounced to /signin with
+ * a callbackUrl pointing at /billing, where they can finish the upgrade.
  */
 export async function startCheckoutOrLogin(
   priceId: string,

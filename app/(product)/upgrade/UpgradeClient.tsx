@@ -104,6 +104,7 @@ export default function UpgradeClient({ planInfo }: { planInfo: UserPlanInfo }) 
       await startCheckout(card.priceEnvValue);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
       setLoadingKey(null);
     }
   };

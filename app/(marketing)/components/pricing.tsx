@@ -97,6 +97,7 @@ export function Pricing() {
       await startCheckoutOrLogin(plan.priceEnvValue, isAuthenticated);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
       setLoadingKey(null);
     }
   };

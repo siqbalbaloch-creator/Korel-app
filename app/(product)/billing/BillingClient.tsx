@@ -142,6 +142,7 @@ export default function BillingClient({
       await startCheckout(card.priceEnvValue);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
       setCheckoutLoading(null);
     }
   };

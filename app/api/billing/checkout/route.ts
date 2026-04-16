@@ -19,7 +19,7 @@ function isAllowedPriceId(priceId: string): boolean {
 export async function POST(request: Request) {
   const session = await getServerAuthSession();
   const userId = session?.user?.id;
-  const userEmail = session?.user?.email;
+  const userEmail = session?.user?.email ?? null;
 
   if (!userId) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -50,35 +50,19 @@ export async function POST(request: Request) {
     select: { paddleCustomerId: true },
   });
 
-  const baseUrl =
-    process.env.NEXTAUTH_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
-
+  // Create a transaction to get a transactionId. The browser will open Paddle.js
+  // overlay checkout with that id — no redirect, no Paddle dashboard default
+  // payment link involved.
   const transaction = await paddle.transactions.create({
     items: [{ priceId, quantity: 1 }],
     ...(existingSub?.paddleCustomerId
       ? { customerId: existingSub.paddleCustomerId }
-      : userEmail
-        ? { customer: { email: userEmail } }
-        : {}),
+      : {}),
     customData: { userId },
-    checkout: { url: `${baseUrl}/billing?success=1` },
   });
 
-  const checkoutUrl = transaction.checkout?.url ?? null;
-
-  if (!checkoutUrl) {
-    // Happens when the Paddle account doesn't have a default payment link
-    // configured. Surface the transaction id so the client can fall back to
-    // the Paddle.js overlay checkout.
-    return NextResponse.json(
-      {
-        error:
-          "No checkout URL returned. Configure a default payment link in Paddle Dashboard > Checkout Settings, or use the Paddle.js overlay with transactionId.",
-        transactionId: transaction.id,
-      },
-      { status: 500 },
-    );
-  }
-
-  return NextResponse.json({ checkoutUrl, transactionId: transaction.id });
+  return NextResponse.json({
+    transactionId: transaction.id,
+    customerEmail: userEmail,
+  });
 }
