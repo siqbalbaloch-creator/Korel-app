@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, CreditCard, ExternalLink } from "lucide-react";
 import type { UserPlanInfo } from "@/lib/getUserPlan";
 import type { PlanTier } from "@/lib/plans";
@@ -86,8 +87,28 @@ export default function BillingClient({
   planInfo: UserPlanInfo;
   hasPaddleCustomer: boolean;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isPaddleSuccess = searchParams?.get("success") === "1";
+
   const [portalLoading, setPortalLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<PaidPlanKey | null>(null);
+  const [showSuccess, setShowSuccess] = useState(isPaddleSuccess);
+
+  // When Paddle redirects back with ?success=1&_ptxn=..., show a success
+  // banner, strip the query params, and refresh once so the new plan (set
+  // by the webhook) is picked up from the DB.
+  useEffect(() => {
+    if (!isPaddleSuccess) return;
+    setShowSuccess(true);
+    router.replace("/billing", { scroll: false });
+    const t = setTimeout(() => {
+      router.refresh();
+    }, 3000);
+    return () => clearTimeout(t);
+    // router is stable; searchParams change is already captured via isPaddleSuccess
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPaddleSuccess]);
   const [error, setError] = useState<string | null>(null);
 
   const handleManage = async () => {
@@ -141,7 +162,13 @@ export default function BillingClient({
         <p className="mt-1 text-sm text-[#64748B]">Manage your plan and usage.</p>
       </div>
 
-      {error && (
+      {showSuccess && (
+        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          Payment successful! Your plan is being activated — this may take a few seconds.
+        </div>
+      )}
+
+      {error && !showSuccess && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
