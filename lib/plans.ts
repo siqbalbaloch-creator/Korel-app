@@ -43,7 +43,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
   STARTER: {
     tier: "STARTER",
     name: "Starter",
-    monthlyPackLimit: 15,
+    monthlyPackLimit: Infinity,
     maxRegenerationsPerPack: 10,
     maxStoredPacks: Infinity,
     maxRssFeeds: 1,
