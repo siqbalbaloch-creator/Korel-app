@@ -41,7 +41,7 @@ const FAQS = [
   },
   {
     q: "Can teams use Korel?",
-    a: "Multi-user team accounts are planned for the Enterprise tier. If you are evaluating Korel for a team, join the Enterprise waitlist and we will reach out during the onboarding cohort.",
+    a: "Enterprise plans are available on request. Email us at siqbalbaloch@gmail.com and we'll get you set up.",
   },
 ] as const;
 
