@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, CreditCard, ExternalLink } from "lucide-react";
 import type { UserPlanInfo } from "@/lib/getUserPlan";
 import type { PlanTier } from "@/lib/plans";
+import { startCheckout } from "@/components/pricing/startCheckout";
 
 type PaidPlanKey = "STARTER" | "PROFESSIONAL";
 
@@ -40,7 +41,7 @@ const PLAN_CARDS: PlanCard[] = [
     priceDisplay: "$49",
     subtext: "For founders publishing weekly",
     features: [
-      "15 content packs per month",
+      "Unlimited content packs",
       "RSS feed monitoring (1 feed)",
       "Auto-publish to LinkedIn + X",
       "Beehiiv newsletter integration",
@@ -58,10 +59,10 @@ const PLAN_CARDS: PlanCard[] = [
     priceDisplay: "$149",
     subtext: "For founders who publish everywhere",
     features: [
-      "50 content packs per month",
+      "Everything in Starter",
       "5 RSS feeds monitored",
       "Priority pack generation",
-      "Unlimited regenerations",
+      "Advanced analytics",
       "Repurpose back catalog (unlimited)",
       "Priority support",
     ],
@@ -117,23 +118,9 @@ export default function BillingClient({
     setCheckoutLoading(card.key as PaidPlanKey);
     setError(null);
     try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId: card.priceEnvValue }),
-      });
-      const data = (await res.json()) as {
-        checkoutUrl?: string;
-        error?: string;
-      };
-      if (data.checkoutUrl) {
-        window.location.assign(data.checkoutUrl);
-      } else {
-        setError(data.error ?? "Could not start checkout.");
-        setCheckoutLoading(null);
-      }
-    } catch {
-      setError("Something went wrong starting checkout.");
+      await startCheckout(card.priceEnvValue);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
       setCheckoutLoading(null);
     }
   };
@@ -303,7 +290,7 @@ export default function BillingClient({
       <p className="mt-6 text-center text-xs text-[#94A3B8]">
         All paid plans include a{" "}
         <a href="/refund" className="underline hover:text-[#64748B] transition-colors">
-          7-day money-back guarantee
+          14-day money-back guarantee
         </a>
         . Payments processed by Paddle.
       </p>

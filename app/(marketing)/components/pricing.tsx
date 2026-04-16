@@ -1,27 +1,34 @@
 "use client";
 
+import { useState } from "react";
 import { Check } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { startCheckoutOrLogin } from "@/components/pricing/startCheckout";
+
+type PaidPlanKey = "STARTER" | "PROFESSIONAL";
 
 interface Plan {
+  key: "FREE" | PaidPlanKey;
   name: string;
   price: string;
   period: string | null;
   badge?: string;
   subtext: string;
   cta: string;
-  ctaHref: string;
   variant: "default" | "featured" | "plain";
   features: readonly string[];
+  /** Present on paid plans; null on the free plan (which links to /new). */
+  priceEnvValue?: string;
 }
 
 const PLANS: Plan[] = [
   {
+    key: "FREE",
     name: "Free",
     price: "$0",
     period: "/month",
     subtext: "Try Korel risk-free",
     cta: "Start Free",
-    ctaHref: "/new",
     variant: "plain",
     features: [
       "3 content packs per month",
@@ -31,14 +38,15 @@ const PLANS: Plan[] = [
     ],
   },
   {
+    key: "STARTER",
     name: "Starter",
     price: "$49",
     period: "/month",
     badge: "Most Popular",
     subtext: "For founders publishing weekly",
-    cta: "Get Started",
-    ctaHref: "/new",
+    cta: "Get Started →",
     variant: "featured",
+    priceEnvValue: process.env.NEXT_PUBLIC_PADDLE_STARTER_PRICE_ID,
     features: [
       "Unlimited content packs",
       "RSS feed monitoring (1 feed)",
@@ -50,13 +58,14 @@ const PLANS: Plan[] = [
     ],
   },
   {
+    key: "PROFESSIONAL",
     name: "Professional",
     price: "$149",
     period: "/month",
     subtext: "For founders who publish everywhere",
-    cta: "Get Started",
-    ctaHref: "/new",
+    cta: "Get Started →",
     variant: "default",
+    priceEnvValue: process.env.NEXT_PUBLIC_PADDLE_PROFESSIONAL_PRICE_ID,
     features: [
       "Everything in Starter",
       "5 RSS feeds monitored",
@@ -69,6 +78,29 @@ const PLANS: Plan[] = [
 ];
 
 export function Pricing() {
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
+  const [loadingKey, setLoadingKey] = useState<PaidPlanKey | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleUpgrade = async (plan: Plan) => {
+    if (plan.key === "FREE") return;
+    if (!plan.priceEnvValue) {
+      setError(
+        `Price ID for ${plan.name} is not configured. Set NEXT_PUBLIC_PADDLE_${plan.key}_PRICE_ID.`,
+      );
+      return;
+    }
+    setLoadingKey(plan.key);
+    setError(null);
+    try {
+      await startCheckoutOrLogin(plan.priceEnvValue, isAuthenticated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setLoadingKey(null);
+    }
+  };
+
   return (
     <section id="pricing" className="px-6" style={{ paddingTop: "112px", paddingBottom: "112px", backgroundColor: "#F6F7FB" }}>
       <div className="mx-auto" style={{ maxWidth: "1100px" }}>
@@ -83,20 +115,44 @@ export function Pricing() {
             Start free. Upgrade when Korel saves you more time than it costs.
           </p>
         </div>
+
+        {error && (
+          <div style={{ maxWidth: "560px", margin: "0 auto 28px", padding: "12px 16px", borderRadius: "10px", border: "1px solid #FECACA", backgroundColor: "#FEF2F2", color: "#991B1B", fontSize: "14px", textAlign: "center" }}>
+            {error}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: "24px", alignItems: "stretch" }}>
           {PLANS.map((plan) => (
-            <PlanCard key={plan.name} plan={plan} />
+            <PlanCard
+              key={plan.key}
+              plan={plan}
+              isLoading={loadingKey === plan.key}
+              disabled={loadingKey !== null && loadingKey !== plan.key}
+              onUpgrade={handleUpgrade}
+            />
           ))}
         </div>
+
         <p style={{ textAlign: "center", color: "#94A3B8", fontSize: "14px", fontWeight: 400, marginTop: "40px", marginBottom: 0 }}>
-          Payments coming soon. Start free today — your account will be ready when billing launches.
+          All paid plans include a 14-day money-back guarantee. Payments processed by Paddle.
         </p>
       </div>
     </section>
   );
 }
 
-function PlanCard({ plan }: { plan: Plan }) {
+function PlanCard({
+  plan,
+  isLoading,
+  disabled,
+  onUpgrade,
+}: {
+  plan: Plan;
+  isLoading: boolean;
+  disabled: boolean;
+  onUpgrade: (plan: Plan) => void;
+}) {
   const featured = plan.variant === "featured";
   const plain = plan.variant === "plain";
 
@@ -105,6 +161,23 @@ function PlanCard({ plan }: { plan: Plan }) {
     : plain
     ? { backgroundColor: "rgba(109,94,243,0.06)", border: "1.5px solid rgba(109,94,243,0.25)", color: "#6D5EF3" }
     : { backgroundColor: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#374151" };
+
+  const commonCtaStyles: React.CSSProperties = {
+    display: "block",
+    width: "100%",
+    textAlign: "center",
+    height: "48px",
+    lineHeight: "48px",
+    borderRadius: "12px",
+    fontSize: "15px",
+    fontWeight: 600,
+    textDecoration: "none",
+    transition: "all 0.2s ease",
+    border: "none",
+    cursor: disabled || isLoading ? "not-allowed" : "pointer",
+    opacity: disabled || isLoading ? 0.7 : 1,
+    ...ctaStyle,
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", backgroundColor: "#FFFFFF", borderRadius: "20px", border: featured ? "1px solid rgba(99,102,241,0.3)" : "1px solid rgba(0,0,0,0.07)", padding: featured ? "0" : "36px", boxShadow: featured ? "0 8px 36px rgba(99,102,241,0.13)" : "0 2px 12px rgba(0,0,0,0.04)", overflow: "hidden" }}>
@@ -131,9 +204,20 @@ function PlanCard({ plan }: { plan: Plan }) {
             </li>
           ))}
         </ul>
-        <a href={plan.ctaHref} style={{ display: "block", width: "100%", textAlign: "center", height: "48px", lineHeight: "48px", borderRadius: "12px", fontSize: "15px", fontWeight: 600, textDecoration: "none", transition: "all 0.2s ease", ...ctaStyle }}>
-          {plan.cta}
-        </a>
+        {plan.key === "FREE" ? (
+          <a href="/new" style={commonCtaStyles}>
+            {plan.cta}
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onUpgrade(plan)}
+            disabled={disabled || isLoading}
+            style={commonCtaStyles}
+          >
+            {isLoading ? "Opening checkout..." : plan.cta}
+          </button>
+        )}
       </div>
     </div>
   );

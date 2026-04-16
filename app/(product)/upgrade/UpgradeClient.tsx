@@ -3,16 +3,30 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import type { UserPlanInfo } from "@/lib/getUserPlan";
-import { PricingWaitlistModal } from "@/components/pricing/PricingWaitlistModal";
+import type { PlanTier } from "@/lib/plans";
+import { startCheckout } from "@/components/pricing/startCheckout";
 
-type WaitlistPlan = "STARTER" | "PROFESSIONAL" | "ENTERPRISE";
+type PaidPlanKey = "STARTER" | "PROFESSIONAL";
 
-const PLAN_CARDS = [
+type PlanCardDef = {
+  key: PlanTier;
+  label: string;
+  priceDisplay: string;
+  hasPeriod: boolean;
+  subtext: string;
+  features: string[];
+  cta: string;
+  priceEnvValue?: string;
+  featured?: boolean;
+  purchasable: boolean;
+};
+
+const PLAN_CARDS: PlanCardDef[] = [
   {
-    key: "FREE" as const,
+    key: "FREE",
     label: "Free",
-    price: null as null,
     priceDisplay: "$0",
+    hasPeriod: false,
     subtext: "Try Korel risk-free",
     features: [
       "3 content packs per month",
@@ -21,13 +35,13 @@ const PLAN_CARDS = [
       "Basic quality scoring",
     ],
     cta: "Downgrade",
-    waitlistKey: null as WaitlistPlan | null,
+    purchasable: false,
   },
   {
-    key: "STARTER" as const,
+    key: "STARTER",
     label: "Starter",
-    price: 49,
     priceDisplay: "$49",
+    hasPeriod: true,
     subtext: "For founders publishing weekly",
     features: [
       "Unlimited content packs",
@@ -38,15 +52,16 @@ const PLAN_CARDS = [
       "Mobile approve flow",
       "Back catalog repurposing",
     ],
-    cta: "Get Started",
-    waitlistKey: "STARTER" as WaitlistPlan,
+    cta: "Upgrade to Starter",
+    priceEnvValue: process.env.NEXT_PUBLIC_PADDLE_STARTER_PRICE_ID,
     featured: true,
+    purchasable: true,
   },
   {
-    key: "PROFESSIONAL" as const,
+    key: "PROFESSIONAL",
     label: "Professional",
-    price: 149,
     priceDisplay: "$149",
+    hasPeriod: true,
     subtext: "For founders who publish everywhere",
     features: [
       "Everything in Starter",
@@ -56,22 +71,42 @@ const PLAN_CARDS = [
       "Repurpose back catalog (unlimited)",
       "Priority support",
     ],
-    cta: "Get Started",
-    waitlistKey: "PROFESSIONAL" as WaitlistPlan,
+    cta: "Upgrade to Professional",
+    priceEnvValue: process.env.NEXT_PUBLIC_PADDLE_PROFESSIONAL_PRICE_ID,
+    purchasable: true,
   },
 ];
 
-const PLAN_DISPLAY_NAMES: Record<string, string> = {
+const PLAN_DISPLAY_NAMES: Record<PlanTier, string> = {
   FREE: "Free",
-  PRO: "Pro",
+  STARTER: "Starter",
+  PROFESSIONAL: "Professional",
   ENTERPRISE: "Enterprise",
 };
 
 export default function UpgradeClient({ planInfo }: { planInfo: UserPlanInfo }) {
-  const [modalPlan, setModalPlan] = useState<WaitlistPlan | null>(null);
+  const [loadingKey, setLoadingKey] = useState<PaidPlanKey | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const { plan } = planInfo;
   const planLabel = PLAN_DISPLAY_NAMES[plan] ?? plan;
+
+  const handleUpgrade = async (card: PlanCardDef) => {
+    if (!card.priceEnvValue) {
+      setError(
+        `Price ID for ${card.label} is not configured. Set NEXT_PUBLIC_PADDLE_${card.key}_PRICE_ID.`,
+      );
+      return;
+    }
+    setLoadingKey(card.key as PaidPlanKey);
+    setError(null);
+    try {
+      await startCheckout(card.priceEnvValue);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setLoadingKey(null);
+    }
+  };
 
   return (
     <div className="flex-1 overflow-auto">
@@ -85,11 +120,18 @@ export default function UpgradeClient({ planInfo }: { planInfo: UserPlanInfo }) 
           </p>
         </div>
 
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {error}
+          </div>
+        )}
+
         {/* Plan cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {PLAN_CARDS.map((card) => {
             const isCurrent = plan === card.key;
             const isFeatured = !!card.featured;
+            const isLoading = loadingKey === card.key;
 
             return (
               <div
@@ -143,17 +185,17 @@ export default function UpgradeClient({ planInfo }: { planInfo: UserPlanInfo }) 
                   <div>
                     <p className="text-2xl font-bold text-[#0F172A] mb-3">
                       {card.priceDisplay}
-                      {card.price !== null && (
+                      {card.hasPeriod && (
                         <span className="text-sm font-normal text-[#94A3B8]"> / month</span>
                       )}
                     </p>
 
-                    {card.key === "FREE" ? (
+                    {!card.purchasable ? (
                       <button
                         disabled
                         className="w-full rounded-lg py-2.5 text-sm font-semibold bg-[#F1F5F9] text-[#94A3B8] cursor-default"
                       >
-                        {isCurrent ? "Your current plan" : "Downgrade"}
+                        {isCurrent ? "Your current plan" : card.cta}
                       </button>
                     ) : isCurrent ? (
                       <button
@@ -164,14 +206,15 @@ export default function UpgradeClient({ planInfo }: { planInfo: UserPlanInfo }) 
                       </button>
                     ) : (
                       <button
-                        onClick={() => card.waitlistKey && setModalPlan(card.waitlistKey)}
-                        className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-colors ${
+                        onClick={() => handleUpgrade(card)}
+                        disabled={isLoading || loadingKey !== null}
+                        className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 ${
                           isFeatured
                             ? "bg-gradient-to-r from-[#6D5EF3] to-[#8B7CFF] text-white hover:opacity-90"
                             : "bg-[#4F46E5] text-white hover:bg-[#4338CA]"
                         }`}
                       >
-                        {card.cta}
+                        {isLoading ? "Opening checkout..." : card.cta}
                       </button>
                     )}
                   </div>
@@ -182,17 +225,9 @@ export default function UpgradeClient({ planInfo }: { planInfo: UserPlanInfo }) 
         </div>
 
         <p className="text-center text-xs text-[#94A3B8]">
-          Paid plans are opening in phases. Join the waitlist to get notified.
+          All paid plans include a 14-day money-back guarantee. Payments processed by Paddle.
         </p>
       </div>
-
-      {modalPlan && (
-        <PricingWaitlistModal
-          plan={modalPlan}
-          source="PRICING"
-          onClose={() => setModalPlan(null)}
-        />
-      )}
     </div>
   );
 }
