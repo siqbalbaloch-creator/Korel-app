@@ -1,7 +1,7 @@
 "use client";
 
-import type { CheckoutSettings } from "@paddle/paddle-js";
-import { getPaddleClient } from "./paddleClient";
+import type { CheckoutOpenOptions, CheckoutSettings } from "@paddle/paddle-js";
+import { getPaddleClient, resetPaddleClient } from "./paddleClient";
 
 const CHECKOUT_SETTINGS: CheckoutSettings = {
   displayMode: "overlay",
@@ -12,6 +12,30 @@ const CHECKOUT_SETTINGS: CheckoutSettings = {
   frameInitialHeight: 450,
   frameStyle: "width: 100%; background-color: transparent; border: none;",
 };
+
+/**
+ * Open the overlay, resetting the cached Paddle client + retrying once
+ * if the first call throws. Paddle.js can get into a stale internal state
+ * after a prior overlay was closed/cancelled; a fresh init clears it.
+ */
+async function openOverlayWithRetry(options: CheckoutOpenOptions): Promise<void> {
+  let paddle = await getPaddleClient();
+  try {
+    paddle.Checkout.open(options);
+  } catch (firstErr) {
+    resetPaddleClient();
+    try {
+      paddle = await getPaddleClient();
+      paddle.Checkout.open(options);
+    } catch (retryErr) {
+      throw retryErr instanceof Error
+        ? retryErr
+        : (firstErr instanceof Error
+          ? firstErr
+          : new Error("Paddle checkout failed to open."));
+    }
+  }
+}
 
 /**
  * Opens a Paddle overlay checkout for the given priceId.
@@ -38,8 +62,7 @@ export async function startCheckout(priceId: string): Promise<void> {
     throw new Error(data.error ?? "Could not start checkout.");
   }
 
-  const paddle = await getPaddleClient();
-  paddle.Checkout.open({
+  await openOverlayWithRetry({
     transactionId: data.transactionId,
     settings: CHECKOUT_SETTINGS,
     ...(data.customerEmail ? { customer: { email: data.customerEmail } } : {}),

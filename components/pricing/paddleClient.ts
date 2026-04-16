@@ -37,3 +37,13 @@ export async function getPaddleClient(): Promise<Paddle> {
   }
   return paddle;
 }
+
+/**
+ * Clears the memoised Paddle instance. Call this after the overlay is
+ * dismissed or if a Checkout.open() call fails, so the next attempt
+ * re-initialises the client cleanly. The underlying CDN script is cached
+ * by the browser, so re-init is cheap.
+ */
+export function resetPaddleClient(): void {
+  paddlePromise = null;
+}
