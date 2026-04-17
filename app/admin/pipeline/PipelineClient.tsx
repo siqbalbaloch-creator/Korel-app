@@ -7,7 +7,7 @@ type RevenueStage = "pre-revenue" | "early" | "growing" | "scaled";
 
 type AttemptLogEntry = {
   source: string;
-  result: "found" | "skipped" | "failed";
+  result: "found" | "skipped" | "failed" | "rejected";
   detail: string;
 };
 
@@ -415,7 +415,13 @@ function LeadCard({
                   {lead.emailAttemptLog.map((entry, i) => (
                     <div key={i} className="flex items-start gap-1.5 text-xs">
                       <span className="shrink-0 w-3">
-                        {entry.result === "found" ? "✅" : entry.result === "skipped" ? "⏭" : "❌"}
+                        {entry.result === "found"
+                          ? "✅"
+                          : entry.result === "skipped"
+                          ? "⏭"
+                          : entry.result === "rejected"
+                          ? "⚠️"
+                          : "❌"}
                       </span>
                       <span className="font-medium text-neutral-600 capitalize w-16 shrink-0">{entry.source}</span>
                       <span className="text-neutral-400">{entry.detail}</span>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { classifyEmailFormat } from "@/lib/pipeline/emailValidation";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -54,8 +55,22 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   if (email !== undefined) {
-    data.email = email || null;
-    if (email) data.emailSource = "manual";
+    if (email) {
+      // Manual edits still go through the format/role/placeholder gate so a
+      // typo or copy-pasted role inbox can't slip past the automated filter.
+      // MX check is skipped here — admin may be fixing before sending.
+      const verdict = classifyEmailFormat(email);
+      if (!verdict.ok) {
+        return NextResponse.json(
+          { error: `Rejected: ${verdict.reason}` },
+          { status: 422 },
+        );
+      }
+      data.email = verdict.email;
+      data.emailSource = "manual";
+    } else {
+      data.email = null;
+    }
   }
 
   const lead = await prisma.outreachLead.update({

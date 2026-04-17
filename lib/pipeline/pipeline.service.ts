@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { openai } from "@/lib/openai";
 import { logger } from "@/lib/logger";
+import { validateEmail } from "./emailValidation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,7 +39,8 @@ export type FounderInfo = {
 
 export type AttemptLogEntry = {
   source: string;
-  result: "found" | "skipped" | "failed";
+  /** "rejected" = source returned an email but it failed the quality gate (role inbox, bad MX, etc.) */
+  result: "found" | "skipped" | "failed" | "rejected";
   detail: string;
 };
 
@@ -466,6 +468,38 @@ async function scrapeTwitterBioEmail(
 
 // ─── Waterfall findEmail ──────────────────────────────────────────────────────
 
+/**
+ * Per-source quality gate. Called after each branch finds a candidate email.
+ * - If email is null → returns null, caller logs its own "failed" reason.
+ * - If email is present and passes validation (format + role + MX + confidence floor)
+ *   → logs "found" and returns an EmailResult.
+ * - If email is present but rejected → logs "rejected" with the reason and returns null,
+ *   so the waterfall keeps trying subsequent sources.
+ */
+async function tryAccept(
+  email: string | null | undefined,
+  confidence: number,
+  source: string,
+  log: AttemptLogEntry[],
+): Promise<EmailResult | null> {
+  if (!email) return null;
+  const verdict = await validateEmail(email, confidence);
+  if (verdict.ok) {
+    log.push({
+      source,
+      result: "found",
+      detail: `${verdict.email} (confidence ${confidence})`,
+    });
+    return { email: verdict.email, confidence, source, attemptLog: log };
+  }
+  log.push({
+    source,
+    result: "rejected",
+    detail: `${email}: ${verdict.reason}`,
+  });
+  return null;
+}
+
 export async function findEmail(
   firstName: string,
   lastName: string,
@@ -482,11 +516,11 @@ export async function findEmail(
   if (youtubeVideoId) {
     const email = await scrapeYouTubeChannelEmail(youtubeVideoId);
     console.log(`[findEmail] youtube_channel → ${email ?? "null"}`);
-    if (email) {
-      log.push({ source: "youtube_channel", result: "found", detail: "email in channel description" });
-      return { email, confidence: 95, source: "youtube_channel", attemptLog: log };
+    const accepted = await tryAccept(email, 95, "youtube_channel", log);
+    if (accepted) return accepted;
+    if (!email) {
+      log.push({ source: "youtube_channel", result: "failed", detail: "no email in channel description" });
     }
-    log.push({ source: "youtube_channel", result: "failed", detail: "no email in channel description" });
     await sleep(500);
   } else {
     log.push({ source: "youtube_channel", result: "skipped", detail: "no video URL provided" });
@@ -499,11 +533,11 @@ export async function findEmail(
     const domain = effectiveWebsite.replace(/^https?:\/\//, "").split("/")[0];
     const email = await scrapeWebsiteEmail(effectiveWebsite);
     console.log(`[findEmail] website scrape → ${email ?? "null"}`);
-    if (email) {
-      log.push({ source: "website", result: "found", detail: `found on ${domain}` });
-      return { email, confidence: 90, source: "website", attemptLog: log };
+    const accepted = await tryAccept(email, 90, "website", log);
+    if (accepted) return accepted;
+    if (!email) {
+      log.push({ source: "website", result: "failed", detail: `${domain} found, no email on page` });
     }
-    log.push({ source: "website", result: "failed", detail: `${domain} found, no email on page` });
     await sleep(500);
   } else {
     log.push({ source: "website", result: "skipped", detail: "no domain resolved for company" });
@@ -517,11 +551,11 @@ export async function findEmail(
   } else {
     const result = await findEmailProspeo(linkedinUrl);
     console.log(`[findEmail] prospeo → ${result.email ?? "null"} (${result.reason})`);
-    if (result.email) {
-      log.push({ source: "prospeo", result: "found", detail: "found via LinkedIn profile" });
-      return { email: result.email, confidence: result.confidence, source: "prospeo", attemptLog: log };
+    const accepted = await tryAccept(result.email, result.confidence, "prospeo", log);
+    if (accepted) return accepted;
+    if (!result.email) {
+      log.push({ source: "prospeo", result: "failed", detail: result.reason });
     }
-    log.push({ source: "prospeo", result: "failed", detail: result.reason });
     await sleep(500);
   }
 
@@ -531,11 +565,11 @@ export async function findEmail(
   } else {
     const result = await findEmailSnov(firstName, lastName, effectiveWebsite ?? null);
     console.log(`[findEmail] snov → ${result.email ?? "null"} (${result.reason})`);
-    if (result.email) {
-      log.push({ source: "snov", result: "found", detail: "found" });
-      return { email: result.email, confidence: result.confidence, source: "snov", attemptLog: log };
+    const accepted = await tryAccept(result.email, result.confidence, "snov", log);
+    if (accepted) return accepted;
+    if (!result.email) {
+      log.push({ source: "snov", result: "failed", detail: result.reason });
     }
-    log.push({ source: "snov", result: "failed", detail: result.reason });
     await sleep(500);
   }
 
@@ -545,11 +579,11 @@ export async function findEmail(
   } else {
     const result = await findEmailApollo(firstName, lastName, company);
     console.log(`[findEmail] apollo → ${result.email ?? "null"} (${result.reason})`);
-    if (result.email) {
-      log.push({ source: "apollo", result: "found", detail: "found" });
-      return { email: result.email, confidence: result.confidence, source: "apollo", attemptLog: log };
+    const accepted = await tryAccept(result.email, result.confidence, "apollo", log);
+    if (accepted) return accepted;
+    if (!result.email) {
+      log.push({ source: "apollo", result: "failed", detail: result.reason });
     }
-    log.push({ source: "apollo", result: "failed", detail: result.reason });
     await sleep(500);
   }
 
@@ -559,25 +593,25 @@ export async function findEmail(
   } else {
     const result = await findEmailHunter(firstName, lastName, company);
     console.log(`[findEmail] hunter → ${result.email ?? "null"} (${result.reason})`);
-    if (result.email) {
-      log.push({ source: "hunter", result: "found", detail: "found" });
-      return { email: result.email, confidence: result.confidence, source: "hunter", attemptLog: log };
+    const accepted = await tryAccept(result.email, result.confidence, "hunter", log);
+    if (accepted) return accepted;
+    if (!result.email) {
+      log.push({ source: "hunter", result: "failed", detail: result.reason });
     }
-    log.push({ source: "hunter", result: "failed", detail: result.reason });
   }
 
   // Source 7: Twitter/X bio via Nitter (no API key — public mirror, last resort)
   {
     const result = await scrapeTwitterBioEmail(firstName, lastName, company, twitterUrl);
     console.log(`[findEmail] twitter_bio → ${result.email ?? "null"} (${result.reason})`);
-    if (result.email) {
-      log.push({ source: "twitter_bio", result: "found", detail: result.reason });
-      return { email: result.email, confidence: result.confidence, source: "twitter_bio", attemptLog: log };
+    const accepted = await tryAccept(result.email, result.confidence, "twitter_bio", log);
+    if (accepted) return accepted;
+    if (!result.email) {
+      log.push({ source: "twitter_bio", result: "failed", detail: result.reason });
     }
-    log.push({ source: "twitter_bio", result: "failed", detail: result.reason });
   }
 
-  console.log(`[findEmail] all sources exhausted → no email found`);
+  console.log(`[findEmail] all sources exhausted → no acceptable email`);
   return { email: null, confidence: 0, source: "none", attemptLog: log };
 }
 

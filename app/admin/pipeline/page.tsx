@@ -21,7 +21,7 @@ export default async function AdminPipelinePage() {
     createdAt: l.createdAt.toISOString(),
     approvedAt: l.approvedAt?.toISOString() ?? null,
     sentAt: l.sentAt?.toISOString() ?? null,
-    emailAttemptLog: l.emailAttemptLog as { source: string; result: "found" | "skipped" | "failed"; detail: string }[] | null,
+    emailAttemptLog: l.emailAttemptLog as { source: string; result: "found" | "skipped" | "failed" | "rejected"; detail: string }[] | null,
   }));
 
   // Pipeline log: 50 most recent PipelineVideo rows
