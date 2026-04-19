@@ -1,12 +1,15 @@
 import { requireAdmin } from "@/lib/requireAdmin";
 import { prisma } from "@/lib/prisma";
+import { classifyEmailFormat } from "@/lib/pipeline/emailValidation";
 import PipelineClient from "./PipelineClient";
 
 export default async function AdminPipelinePage() {
   await requireAdmin();
 
-  // Fetch all leads with their video info
+  // Fetch leads that actually have an email stored. NO_EMAIL / PENDING_EMAIL
+  // rows aren't actionable (nowhere to send) so they're hidden from the queue.
   const rawLeads = await prisma.outreachLead.findMany({
+    where: { email: { not: null } },
     orderBy: { createdAt: "desc" },
     include: {
       pipelineVideo: {
@@ -15,8 +18,14 @@ export default async function AdminPipelinePage() {
     },
   });
 
-  // Classify READY statuses for the client
-  const leads = rawLeads.map((l) => ({
+  // Also drop leads whose stored email is a role inbox (info@, support@, etc.)
+  // or a placeholder — these can exist from before the waterfall gate was added.
+  const usableLeads = rawLeads.filter((l) =>
+    l.email ? classifyEmailFormat(l.email).ok : false,
+  );
+  const hiddenCount = rawLeads.length - usableLeads.length;
+
+  const leads = usableLeads.map((l) => ({
     ...l,
     createdAt: l.createdAt.toISOString(),
     approvedAt: l.approvedAt?.toISOString() ?? null,
@@ -89,6 +98,7 @@ export default async function AdminPipelinePage() {
         pipelineLog={pipelineLog}
         lastRun={lastRun}
         llmStats={llmStats}
+        hiddenCount={hiddenCount}
       />
     </div>
   );

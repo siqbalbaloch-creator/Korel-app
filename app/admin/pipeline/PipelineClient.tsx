@@ -65,6 +65,8 @@ type Props = {
   pipelineLog: PipelineLog[];
   lastRun: LastRun;
   llmStats: LlmStats;
+  /** Count of leads hidden from this view because they had no email or a role/placeholder email. */
+  hiddenCount: number;
 };
 
 type ReadyFilter = "all" | "growing_plus" | "has_email";
@@ -519,7 +521,7 @@ function LeadCard({
   );
 }
 
-export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }: Props) {
+export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats, hiddenCount }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("READY");
   const [localLeads, setLocalLeads] = useState<Lead[]>(leads);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -1063,6 +1065,13 @@ export default function PipelineClient({ leads, pipelineLog, lastRun, llmStats }
           >
             ▶ Run with these settings
           </button>
+        </div>
+      )}
+
+      {/* Hidden-leads note */}
+      {hiddenCount > 0 && (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+          <span className="font-semibold">{hiddenCount}</span> lead{hiddenCount === 1 ? "" : "s"} hidden from the queue — no usable email (missing, role inbox like <code className="font-mono">info@</code>/<code className="font-mono">support@</code>, or placeholder).
         </div>
       )}
 
